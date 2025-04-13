@@ -2,7 +2,7 @@ package uga.cs4370.mydbfrontend;
 
 import java.util.Optional;
 
-public class AliasableImpl<T> implements Aliasable<T> {
+public final class AliasableImpl<T> implements Aliasable<T> {
 
     private T value;
     private String name;
@@ -13,15 +13,9 @@ public class AliasableImpl<T> implements Aliasable<T> {
     }
 
     public AliasableImpl(T value, String name, String alias) {
-        if (value == null) {
-            throw new NullPointerException();
-        }
-        if (name == null) {
-            throw new NullPointerException();
-        }
-        this.value = value;
-        this.name = name;
-        this.alias = Optional.ofNullable(alias);
+        setValue(value);
+        setName(name);
+        setAlias(alias);
     }
 
     @Override

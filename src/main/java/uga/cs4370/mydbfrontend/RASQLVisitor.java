@@ -1,21 +1,36 @@
 package uga.cs4370.mydbfrontend;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Stream;
+import java.util.function.BiFunction;
 
 import net.sf.jsqlparser.expression.Alias;
+import net.sf.jsqlparser.expression.BinaryExpression;
+import net.sf.jsqlparser.expression.DoubleValue;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.ExpressionVisitor;
 import net.sf.jsqlparser.expression.ExpressionVisitorAdapter;
+import net.sf.jsqlparser.expression.LongValue;
+import net.sf.jsqlparser.expression.NotExpression;
+import net.sf.jsqlparser.expression.StringValue;
+import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
+import net.sf.jsqlparser.expression.operators.conditional.OrExpression;
+import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
+import net.sf.jsqlparser.expression.operators.relational.GreaterThan;
+import net.sf.jsqlparser.expression.operators.relational.GreaterThanEquals;
+import net.sf.jsqlparser.expression.operators.relational.MinorThan;
+import net.sf.jsqlparser.expression.operators.relational.MinorThanEquals;
+import net.sf.jsqlparser.expression.operators.relational.NotEqualsTo;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.StatementVisitorAdapter;
 import net.sf.jsqlparser.statement.select.AllColumns;
+import net.sf.jsqlparser.statement.select.FromItem;
 import net.sf.jsqlparser.statement.select.FromItemVisitor;
 import net.sf.jsqlparser.statement.select.FromItemVisitorAdapter;
 import net.sf.jsqlparser.statement.select.Join;
@@ -24,9 +39,12 @@ import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.select.SelectItem;
 import net.sf.jsqlparser.statement.select.SelectVisitor;
 import net.sf.jsqlparser.statement.select.SelectVisitorAdapter;
+import uga.cs4370.mydb.Cell;
+import uga.cs4370.mydb.Predicate;
 import uga.cs4370.mydb.RA;
 import uga.cs4370.mydb.Relation;
 import uga.cs4370.mydb.RelationBuilder;
+import uga.cs4370.mydb.Type;
 
 /**
  * Visits an {@link net.sf.jsqlparser.statement.select.Select SQL query} and
@@ -40,14 +58,19 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
     private final SelectVisitor<Void> selectVisitor;
 
     private final List<SelectItem<?>> selectItemsFromQuery;
+    private final List<String> constantSelectItemsFromQuery;
     private final List<Table> tablesFromQuery;
+    private List<Aliasable<Relation>> relationsFromQuery;
+    private List<String> attributesFromRelations;
     private Optional<Expression> whereExpression;
     private boolean allColumns;
 
     public RASQLVisitor(RA ra, Map<String, Relation> knownRelations) {
         this.allColumns = false;
         this.selectItemsFromQuery = new ArrayList<>();
+        this.constantSelectItemsFromQuery = new ArrayList<>();
         this.tablesFromQuery = new ArrayList<>();
+        this.attributesFromRelations = new ArrayList<>();
         this.whereExpression = Optional.empty();
 
         this.ra = ra;
@@ -61,24 +84,40 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
         select.getPlainSelect().accept(this.selectVisitor, context);
         // All fields should be populated now.
 
-        if (this.tablesFromQuery.isEmpty()) {
-            return new RelationBuilder()
-                    .attributeNames(List.of())
-                    .attributeTypes(List.of())
+        // Process tables before processing columns since columns need to be associated with tables.
+        relationsFromQuery = processTables();
+        attributesFromRelations = relationsFromQuery.stream().flatMap(r -> r.getValue().getAttrs().stream()).toList();
+        List<Aliasable<String>> columns = processSelectColumns();
+
+        if (!constantSelectItemsFromQuery.isEmpty()) {
+            List<String> names = new ArrayList<>();
+            List<Type> types = new ArrayList<>();
+            List<Cell> row = new ArrayList<>();
+            for (var constant : constantSelectItemsFromQuery) {
+                names.add(constant);
+                types.add(Type.STRING);
+                row.add(Cell.val(constant));
+            }
+
+            Relation constants = new RelationBuilder()
+                    .attributeNames(names)
+                    .attributeTypes(types)
                     .build();
+            constants.insert(row);
+            relationsFromQuery.add(new AliasableImpl<>(constants, "dual"));
         }
 
-        // Process tables before processing columns since columns need to be associated with tables.
-        List<Aliasable<Relation>> relations = processTables();
-        List<Aliasable<String>> columns = processSelectColumns(relations);
-
-        Relation result = relations.get(0).getValue();
-        for (int i = 1; i < relations.size(); i++) {
-            result = ra.cartesianProduct(result, relations.get(i).getValue());
+        // TODO: Explicit (natural or inner) join keyword
+        Relation result = relationsFromQuery.get(0).getValue();
+        for (int i = 1; i < relationsFromQuery.size(); i++) {
+            result = ra.cartesianProduct(result, relationsFromQuery.get(i).getValue());
         }
 
         if (this.whereExpression.isPresent()) {
-            // TODO: Apply where clause
+            // Process the where clause now that we know the attributes of the final relation
+            ExpressionVisitor<Predicate> visitor = new RASQLExpressionLogicVisitor();
+            Predicate predicate = this.whereExpression.get().accept(visitor, result);
+            result = ra.select(result, predicate);
         }
 
         if (!this.allColumns) {
@@ -88,12 +127,27 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
             result = ra.project(result, columnNamesToProject);
         }
 
-        // Can't remove the table name from attributes because a relation cannot have attributes with the same name
+        // Remove the leading table name from every attribute unless doing so would create duplicate attributes
         List<String> originalAttrs = result.getAttrs();
-        List<String> renames = columns.stream().map(c -> {
-            return c.getAlias().orElse(c.getName());
+        List<String> desiredRenames = columns.stream().map(c -> {
+            if (c.getAlias().isPresent()) {
+                return c.getAlias().get();
+            }
+            return c.getValue();
         }).toList();
-        result = ra.rename(result, originalAttrs, renames);
+        Set<String> duplicateDesiredRenames = desiredRenames.stream()
+                .filter(rename -> Collections.frequency(desiredRenames, rename) > 1)
+                .collect(java.util.stream.Collectors.toSet());
+        if (!duplicateDesiredRenames.isEmpty()) {
+            for (int i = 0; i < originalAttrs.size(); i++) {
+                String rename = desiredRenames.get(i);
+                if (duplicateDesiredRenames.contains(rename)) {
+                    desiredRenames.set(i, originalAttrs.get(i));
+                }
+            }
+        }
+
+        result = ra.rename(result, originalAttrs, desiredRenames);
         return result;
     }
 
@@ -132,64 +186,21 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
         return relations;
     }
 
-    private List<Aliasable<String>> processSelectColumns(List<Aliasable<Relation>> relations) {
+    private List<Aliasable<String>> processSelectColumns() {
         List<Aliasable<String>> attributes = new ArrayList<>();
-        // Every attribute present on the present relations.
-        Stream<String> allKnownAttributes = relations.stream()
-                .flatMap(r -> r.getValue().getAttrs().stream());
-        ExpressionVisitor<String> visitor = new RASQLSelectItemExpressionVisitor();
+        ExpressionVisitor<Nameable<String>> visitor = new RASQLSelectItemExpressionVisitor();
 
         for (SelectItem<?> selectItem : this.selectItemsFromQuery) {
-            String name = selectItem.getExpression().accept(visitor, null);
+            Nameable<String> name = selectItem.getExpression().accept(visitor, selectItem);
             if (name == null) {
                 // TODO: Mention that this operation is unsupported
                 continue;
             }
 
-            if ("*".equals(name)) {
-                this.allColumns = true;
-                continue;
-            }
-
-            int periodIndex = name.indexOf(".");
-            String tableName;
-            if (periodIndex != -1) {
-                // There is a table present here, try to match it to a known relation.
-                tableName = name.substring(0, periodIndex);
-                Optional<Aliasable<Relation>> referencedTable = relations.stream()
-                        .filter(r -> r.getNameOrAlias().equals(tableName))
-                        .findFirst();
-
-                if (referencedTable.isEmpty()) {
-                    throw new UnsupportedOperationException("Column " + name + " references an unknown table " + tableName);
-                }
-
-                Relation table = referencedTable.get().getValue();
-                if (table.getAttrs().stream().noneMatch(name::equals)) {
-                    throw new UnsupportedOperationException("Table " + tableName + " doesn't contain column named " + name.substring(periodIndex + 1));
-                }
-
-                // The attribute is now confirmed to exist, and is named in the proper format.
-            } else {
-                // No table present, try to find a known attribute this column could be referring to.
-                String nameSuffix = "." + name; // All attributes are of form "table.attr", so check for any that end with this attribute.
-                List<String> possibleAttributes = allKnownAttributes.filter(a -> a.endsWith(nameSuffix))
-                        .toList();
-                if (possibleAttributes.size() != 1) {
-                    throw new UnsupportedOperationException("Attribute " + name + " either doesn't exist or is ambiguous");
-                }
-
-                // Get the attribute's name in the correct format.
-                name = possibleAttributes.get(0);
-            }
-
-            // Value is unused here since attributes are just names
-            Aliasable<String> attribute;
+            Aliasable<String> attribute = new AliasableImpl<>(name.getValue(), name.getName());
             Alias alias = selectItem.getAlias();
             if (alias != null) {
-                attribute = new AliasableImpl<>(name, name, alias.getName());
-            } else {
-                attribute = new AliasableImpl<>(name, name);
+                attribute.setAlias(alias.getName());
             }
 
             attributes.add(attribute);
@@ -198,21 +209,62 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
         return attributes;
     }
 
-    private final class RASQLSelectItemExpressionVisitor extends ExpressionVisitorAdapter<String> {
+    private String getTableQualifiedNameFromColumn(Column column) {
+        String columnName = column.getColumnName();
+        String tableName = column.getTableName();
+        if (tableName != null) {
+            Optional<Aliasable<Relation>> referencedTable = relationsFromQuery.stream()
+                    .filter(r -> r.getNameOrAlias().equals(tableName))
+                    .findFirst();
+
+            if (referencedTable.isEmpty()) {
+                throw new UnsupportedOperationException("Column " + columnName + " references an unknown table " + tableName);
+            }
+
+            String tableQualifiedName = tableName + "." + columnName;
+            Relation table = referencedTable.get().getValue();
+            if (table.getAttrs().stream().noneMatch(tableQualifiedName::equals)) {
+                throw new UnsupportedOperationException("Table " + tableName + " doesn't contain column named " + columnName);
+            }
+
+            return tableQualifiedName;
+        }
+
+        // No explicit table name, so try to match the column's name to a known relation's attribute
+        String nameSuffix = "." + columnName; // All attributes are of form "table.attr", so check for any that end with this attribute.
+        List<String> possibleAttributes = attributesFromRelations.stream()
+                .filter(a -> a.endsWith(nameSuffix)).toList();
+        if (possibleAttributes.size() != 1) {
+            throw new UnsupportedOperationException("Attribute " + columnName + " either doesn't exist or is ambiguous");
+        }
+
+        // Get the attribute's name in the correct format.
+        return possibleAttributes.get(0);
+    }
+
+    private final class RASQLSelectItemExpressionVisitor extends ExpressionVisitorAdapter<Nameable<String>> {
 
         @Override
-        public <S> String visit(AllColumns allColumns, S context) {
-            return "*";
+        public <S> Nameable<String> visit(AllColumns allColumns, S context) {
+            RASQLVisitor.this.allColumns = true;
+            return null;
         }
 
         @Override
-        public <S> String visit(Column column, S context) {
-            String tableName = column.getTableName();
-            if (tableName != null) {
-                return tableName + "." + column.getColumnName();
+        public <S> Nameable<String> visit(Column column, S context) {
+            String listedValue;
+            if (column.getTable() != null) {
+                listedValue = column.getTableName() + column.getTableDelimiter() + column.getColumnName();
             } else {
-                return column.getColumnName();
+                listedValue = column.getColumnName();
             }
+            return new NameableImpl<>(listedValue, getTableQualifiedNameFromColumn(column));
+        }
+
+        @Override
+        public <S> Nameable<String> visit(StringValue stringValue, S context) {
+            constantSelectItemsFromQuery.add(stringValue.getValue());
+            return new NameableImpl<>(stringValue.getValue(), stringValue.getValue());
         }
     }
 
@@ -230,16 +282,211 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
         @Override
         public <S> Void visit(PlainSelect plainSelect, S context) {
             plainSelect.getSelectItems().forEach(s -> selectItemsFromQuery.add(s));
-            plainSelect.getFromItem().accept(RASQLVisitor.this.fromItemVisitor);
+            FromItem fromItem = plainSelect.getFromItem();
+            if (fromItem != null) {
+                fromItem.accept(RASQLVisitor.this.fromItemVisitor);
+            }
             List<Join> joins = plainSelect.getJoins();
-            if (joins != null)
-            {
+            if (joins != null) {
+                // TODO: Explicit (natural or inner) join keyword
                 joins.forEach(j -> j.getFromItem().accept(RASQLVisitor.this.fromItemVisitor));
             }
-            // plainSelect.getWhere().accept(RASQLVisitor.this.expressionVisitor);
-            // TODO: getWhere() is just an Expression, maybe store it and evaluate it directly instead of breaking it up?
-
+            RASQLVisitor.this.whereExpression = Optional.ofNullable(plainSelect.getWhere());
             return super.visit(plainSelect, context);
         }
+    }
+
+    private final class RASQLExpressionLogicVisitor extends ExpressionVisitorAdapter<Predicate> {
+
+        @Override
+        public <S> Predicate visit(AndExpression andExpression, S context) {
+            Predicate left = andExpression.getLeftExpression().accept(this, context);
+            Predicate right = andExpression.getRightExpression().accept(this, context);
+            return row -> left.check(row) && right.check(row);
+        }
+
+        @Override
+        public <S> Predicate visit(OrExpression orExpression, S context) {
+            Predicate left = orExpression.getLeftExpression().accept(this, context);
+            Predicate right = orExpression.getRightExpression().accept(this, context);
+            return row -> left.check(row) || right.check(row);
+        }
+
+        @Override
+        public <S> Predicate visit(NotExpression notExpr, S context) {
+            Predicate expression = notExpr.getExpression().accept(this, context);
+            return row -> !expression.check(row);
+        }
+
+        private <S> Predicate getBinaryMathLogicPredicate(BinaryExpression expression, S context, BiFunction<Double, Double, Boolean> comparisonFunction) {
+
+            if (!(context instanceof Relation relation)) {
+                return null;
+            }
+
+            Expression left = expression.getLeftExpression();
+            Expression right = expression.getRightExpression();
+            ExpressionVisitor<Double> numberVisitor = new RASQLExpressionNumericValueVisitor();
+            ExpressionVisitor<Column> columnVisitor = new RASQLExpressionColumnNumericValueVisitor();
+
+            Double leftNumber = left.accept(numberVisitor, context);
+            Double rightNumber = right.accept(numberVisitor, context);
+            Column leftColumn = left.accept(columnVisitor, context);
+            Column rightColumn = right.accept(columnVisitor, context);
+            Integer leftColumnIndex = null, rightColumnIndex = null;
+
+            // If columns are found, make sure they're numerically comparable
+            if (leftColumn != null) {
+                String leftName = getTableQualifiedNameFromColumn(leftColumn);
+                if (!relation.hasAttr(leftName)) {
+                    return null;
+                }
+
+                leftColumnIndex = relation.getAttrIndex(leftName);
+                Type leftType = relation.getTypes().get(leftColumnIndex);
+                if (leftType != Type.DOUBLE && leftType != Type.INTEGER) {
+                    return null;
+                }
+            }
+            if (rightColumn != null) {
+                String rightName = getTableQualifiedNameFromColumn(rightColumn);
+                if (!relation.hasAttr(rightName)) {
+                    return null;
+                }
+
+                rightColumnIndex = relation.getAttrIndex(rightName);
+                Type rightType = relation.getTypes().get(rightColumnIndex);
+                if (rightType != Type.DOUBLE && rightType != Type.INTEGER) {
+                    return null;
+                }
+            }
+
+            if (leftNumber != null && rightNumber != null) {
+                return new BinaryComparisonPredicate(comparisonFunction, leftNumber, rightNumber);
+            } else if (leftNumber != null && rightColumnIndex != null) {
+                return new BinaryComparisonPredicate(comparisonFunction, leftNumber, rightColumnIndex);
+            } else if (leftColumnIndex != null && rightNumber != null) {
+                return new BinaryComparisonPredicate(comparisonFunction, leftColumnIndex, rightNumber);
+            } else if (leftColumnIndex != null && rightColumnIndex != null) {
+                return new BinaryComparisonPredicate(comparisonFunction, leftColumnIndex, rightColumnIndex);
+            } else {
+                return null;
+            }
+        }
+
+        @Override
+        public <S> Predicate visit(GreaterThan greaterThan, S context) {
+            return getBinaryMathLogicPredicate(greaterThan, context, (a, b) -> a.compareTo(b) > 0);
+        }
+
+        @Override
+        public <S> Predicate visit(GreaterThanEquals greaterThanEquals, S context) {
+            return getBinaryMathLogicPredicate(greaterThanEquals, context, (a, b) -> a.compareTo(b) >= 0);
+        }
+
+        @Override
+        public <S> Predicate visit(EqualsTo equalsTo, S context) {
+            return getBinaryMathLogicPredicate(equalsTo, context, (a, b) -> a.compareTo(b) == 0);
+        }
+
+        @Override
+        public <S> Predicate visit(NotEqualsTo notEqualsTo, S context) {
+            return getBinaryMathLogicPredicate(notEqualsTo, context, (a, b) -> a.compareTo(b) != 0);
+        }
+
+        @Override
+        public <S> Predicate visit(MinorThanEquals minorThanEquals, S context) {
+            return getBinaryMathLogicPredicate(minorThanEquals, context, (a, b) -> a.compareTo(b) <= 0);
+        }
+
+        @Override
+        public <S> Predicate visit(MinorThan minorThan, S context) {
+            return getBinaryMathLogicPredicate(minorThan, context, (a, b) -> a.compareTo(b) < 0);
+        }
+
+        private final class BinaryComparisonPredicate implements Predicate {
+
+            private final Double leftValue, rightValue;
+            private final Integer leftColumnIndex, rightColumnIndex;
+            private final BiFunction<Double, Double, Boolean> comparisonFunction;
+
+            public BinaryComparisonPredicate(BiFunction<Double, Double, Boolean> comparisonFunction, Double leftValue, Double rightValue) {
+                this.comparisonFunction = comparisonFunction;
+                this.leftValue = leftValue;
+                this.rightValue = rightValue;
+                this.leftColumnIndex = null;
+                this.rightColumnIndex = null;
+            }
+
+            public BinaryComparisonPredicate(BiFunction<Double, Double, Boolean> comparisonFunction, Double leftValue, Integer rightColumnIndex) {
+                this.comparisonFunction = comparisonFunction;
+                this.leftValue = leftValue;
+                this.rightValue = null;
+                this.leftColumnIndex = null;
+                this.rightColumnIndex = rightColumnIndex;
+            }
+
+            public BinaryComparisonPredicate(BiFunction<Double, Double, Boolean> comparisonFunction, Integer leftColumnIndex, Double rightValue) {
+                this.comparisonFunction = comparisonFunction;
+                this.leftValue = null;
+                this.rightValue = rightValue;
+                this.leftColumnIndex = leftColumnIndex;
+                this.rightColumnIndex = null;
+            }
+
+            public BinaryComparisonPredicate(BiFunction<Double, Double, Boolean> comparisonFunction, Integer leftColumnIndex, Integer rightColumnIndex) {
+                this.comparisonFunction = comparisonFunction;
+                this.leftValue = null;
+                this.rightValue = null;
+                this.leftColumnIndex = leftColumnIndex;
+                this.rightColumnIndex = rightColumnIndex;
+            }
+
+            @Override
+            public boolean check(List<Cell> row) {
+                if (leftValue != null && rightValue != null) {
+                    return comparisonFunction.apply(leftValue, rightValue);
+                } else if (leftValue != null && rightColumnIndex != null) {
+                    Cell rightCell = row.get(rightColumnIndex);
+                    Double rightCellValue = rightCell.getType() == Type.DOUBLE ? rightCell.getAsDouble() : rightCell.getAsInt();
+                    return comparisonFunction.apply(leftValue, rightCellValue);
+                } else if (leftColumnIndex != null && rightValue != null) {
+                    Cell leftCell = row.get(leftColumnIndex);
+                    Double leftCellValue = leftCell.getType() == Type.DOUBLE ? leftCell.getAsDouble() : leftCell.getAsInt();
+                    return comparisonFunction.apply(leftCellValue, rightValue);
+                } else if (leftColumnIndex != null && rightColumnIndex != null) {
+                    Cell leftCell = row.get(leftColumnIndex);
+                    Cell rightCell = row.get(rightColumnIndex);
+                    Double leftCellValue = leftCell.getType() == Type.DOUBLE ? leftCell.getAsDouble() : leftCell.getAsInt();
+                    Double rightCellValue = rightCell.getType() == Type.DOUBLE ? rightCell.getAsDouble() : rightCell.getAsInt();
+                    return comparisonFunction.apply(leftCellValue, rightCellValue);
+                } else {
+                    return false;
+                }
+            }
+
+        }
+    }
+
+    private final class RASQLExpressionNumericValueVisitor extends ExpressionVisitorAdapter<Double> {
+
+        @Override
+        public <S> Double visit(LongValue longValue, S context) {
+            return (double) longValue.getValue();
+        }
+
+        @Override
+        public <S> Double visit(DoubleValue doubleValue, S context) {
+            return doubleValue.getValue();
+        }
+    }
+
+    private final class RASQLExpressionColumnNumericValueVisitor extends ExpressionVisitorAdapter<Column> {
+
+        @Override
+        public <S> Column visit(Column column, S context) {
+            return column;
+        }
+
     }
 }
