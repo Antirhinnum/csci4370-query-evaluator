@@ -18,6 +18,7 @@ import net.sf.jsqlparser.statement.StatementVisitorAdapter;
 import net.sf.jsqlparser.statement.select.AllColumns;
 import net.sf.jsqlparser.statement.select.FromItemVisitor;
 import net.sf.jsqlparser.statement.select.FromItemVisitorAdapter;
+import net.sf.jsqlparser.statement.select.Join;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.select.SelectItem;
@@ -230,7 +231,11 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
         public <S> Void visit(PlainSelect plainSelect, S context) {
             plainSelect.getSelectItems().forEach(s -> selectItemsFromQuery.add(s));
             plainSelect.getFromItem().accept(RASQLVisitor.this.fromItemVisitor);
-            plainSelect.getJoins().forEach(j -> j.getFromItem().accept(RASQLVisitor.this.fromItemVisitor));
+            List<Join> joins = plainSelect.getJoins();
+            if (joins != null)
+            {
+                joins.forEach(j -> j.getFromItem().accept(RASQLVisitor.this.fromItemVisitor));
+            }
             // plainSelect.getWhere().accept(RASQLVisitor.this.expressionVisitor);
             // TODO: getWhere() is just an Expression, maybe store it and evaluate it directly instead of breaking it up?
 
