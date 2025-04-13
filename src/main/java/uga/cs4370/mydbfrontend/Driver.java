@@ -17,7 +17,7 @@ import uga.cs4370.mydbimpl.RAImpl;
 public class Driver {
 
     public static void main(String[] args) {
-        final String QUERY = "SELECT * FROM instructor";
+        final String QUERY = "SELECT i.name AS Better, s.name AS Worse FROM instructor AS i, instructor s";
 
         final Map<String, Relation> TABLES = initTables();
 
