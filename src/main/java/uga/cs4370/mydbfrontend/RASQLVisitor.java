@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 
 import net.sf.jsqlparser.expression.Alias;
 import net.sf.jsqlparser.expression.BinaryExpression;
@@ -318,7 +318,7 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
             return row -> !expression.check(row);
         }
 
-        private <S> Predicate getBinaryMathLogicPredicate(BinaryExpression expression, S context, BiFunction<Double, Double, Boolean> comparisonFunction) {
+        private <S> Predicate getBinaryMathLogicPredicate(BinaryExpression expression, S context, BiPredicate<Double, Double> comparisonFunction) {
 
             if (!(context instanceof Relation relation)) {
                 return null;
@@ -362,13 +362,68 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
             }
 
             if (leftNumber != null && rightNumber != null) {
-                return new BinaryComparisonPredicate(comparisonFunction, leftNumber, rightNumber);
+                return new BinaryNumericComparisonPredicate(comparisonFunction, leftNumber, rightNumber);
             } else if (leftNumber != null && rightColumnIndex != null) {
-                return new BinaryComparisonPredicate(comparisonFunction, leftNumber, rightColumnIndex);
+                return new BinaryNumericComparisonPredicate(comparisonFunction, leftNumber, rightColumnIndex);
             } else if (leftColumnIndex != null && rightNumber != null) {
-                return new BinaryComparisonPredicate(comparisonFunction, leftColumnIndex, rightNumber);
+                return new BinaryNumericComparisonPredicate(comparisonFunction, leftColumnIndex, rightNumber);
             } else if (leftColumnIndex != null && rightColumnIndex != null) {
-                return new BinaryComparisonPredicate(comparisonFunction, leftColumnIndex, rightColumnIndex);
+                return new BinaryNumericComparisonPredicate(comparisonFunction, leftColumnIndex, rightColumnIndex);
+            } else {
+                return null;
+            }
+        }
+
+        private <S> Predicate getBinaryStringCompPredicate(BinaryExpression expression, S context, BiPredicate<String, String> comparisonFunction) {
+            if (!(context instanceof Relation relation)) {
+                return null;
+            }
+
+            Expression left = expression.getLeftExpression();
+            Expression right = expression.getRightExpression();
+            ExpressionVisitor<String> numberVisitor = new RASQLExpressionStringValueVisitor();
+            ExpressionVisitor<Column> columnVisitor = new RASQLExpressionColumnNumericValueVisitor();
+
+            String leftConstant = left.accept(numberVisitor, context);
+            String rightConstant = right.accept(numberVisitor, context);
+            Column leftColumn = left.accept(columnVisitor, context);
+            Column rightColumn = right.accept(columnVisitor, context);
+            Integer leftColumnIndex = null, rightColumnIndex = null;
+
+            // If columns are found, make sure they're numerically comparable
+            if (leftColumn != null) {
+                String leftName = getTableQualifiedNameFromColumn(leftColumn);
+                if (!relation.hasAttr(leftName)) {
+                    return null;
+                }
+
+                leftColumnIndex = relation.getAttrIndex(leftName);
+                Type leftType = relation.getTypes().get(leftColumnIndex);
+                if (leftType != Type.STRING) {
+                    return null;
+                }
+            }
+            if (rightColumn != null) {
+                String rightName = getTableQualifiedNameFromColumn(rightColumn);
+                if (!relation.hasAttr(rightName)) {
+                    return null;
+                }
+
+                rightColumnIndex = relation.getAttrIndex(rightName);
+                Type rightType = relation.getTypes().get(rightColumnIndex);
+                if (rightType != Type.STRING) {
+                    return null;
+                }
+            }
+
+            if (leftConstant != null && rightConstant != null) {
+                return new BinaryStringComparisonPredicate(comparisonFunction, leftConstant, rightConstant);
+            } else if (leftConstant != null && rightColumnIndex != null) {
+                return new BinaryStringComparisonPredicate(comparisonFunction, leftConstant, rightColumnIndex);
+            } else if (leftColumnIndex != null && rightConstant != null) {
+                return new BinaryStringComparisonPredicate(comparisonFunction, leftColumnIndex, rightConstant);
+            } else if (leftColumnIndex != null && rightColumnIndex != null) {
+                return new BinaryStringComparisonPredicate(comparisonFunction, leftColumnIndex, rightColumnIndex);
             } else {
                 return null;
             }
@@ -386,12 +441,20 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
 
         @Override
         public <S> Predicate visit(EqualsTo equalsTo, S context) {
-            return getBinaryMathLogicPredicate(equalsTo, context, (a, b) -> a.compareTo(b) == 0);
+            Predicate result = getBinaryMathLogicPredicate(equalsTo, context, (a, b) -> a.compareTo(b) == 0);
+            if (result == null) {
+                result = getBinaryStringCompPredicate(equalsTo, context, (a, b) -> a.equals(b));
+            }
+            return result;
         }
 
         @Override
         public <S> Predicate visit(NotEqualsTo notEqualsTo, S context) {
-            return getBinaryMathLogicPredicate(notEqualsTo, context, (a, b) -> a.compareTo(b) != 0);
+            Predicate result = getBinaryMathLogicPredicate(notEqualsTo, context, (a, b) -> a.compareTo(b) == 0);
+            if (result == null) {
+                result = getBinaryStringCompPredicate(notEqualsTo, context, (a, b) -> !a.equals(b));
+            }
+            return result;
         }
 
         @Override
@@ -404,13 +467,13 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
             return getBinaryMathLogicPredicate(minorThan, context, (a, b) -> a.compareTo(b) < 0);
         }
 
-        private final class BinaryComparisonPredicate implements Predicate {
+        private final class BinaryNumericComparisonPredicate implements Predicate {
 
             private final Double leftValue, rightValue;
             private final Integer leftColumnIndex, rightColumnIndex;
-            private final BiFunction<Double, Double, Boolean> comparisonFunction;
+            private final BiPredicate<Double, Double> comparisonFunction;
 
-            public BinaryComparisonPredicate(BiFunction<Double, Double, Boolean> comparisonFunction, Double leftValue, Double rightValue) {
+            public BinaryNumericComparisonPredicate(BiPredicate<Double, Double> comparisonFunction, Double leftValue, Double rightValue) {
                 this.comparisonFunction = comparisonFunction;
                 this.leftValue = leftValue;
                 this.rightValue = rightValue;
@@ -418,7 +481,7 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
                 this.rightColumnIndex = null;
             }
 
-            public BinaryComparisonPredicate(BiFunction<Double, Double, Boolean> comparisonFunction, Double leftValue, Integer rightColumnIndex) {
+            public BinaryNumericComparisonPredicate(BiPredicate<Double, Double> comparisonFunction, Double leftValue, Integer rightColumnIndex) {
                 this.comparisonFunction = comparisonFunction;
                 this.leftValue = leftValue;
                 this.rightValue = null;
@@ -426,7 +489,7 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
                 this.rightColumnIndex = rightColumnIndex;
             }
 
-            public BinaryComparisonPredicate(BiFunction<Double, Double, Boolean> comparisonFunction, Integer leftColumnIndex, Double rightValue) {
+            public BinaryNumericComparisonPredicate(BiPredicate<Double, Double> comparisonFunction, Integer leftColumnIndex, Double rightValue) {
                 this.comparisonFunction = comparisonFunction;
                 this.leftValue = null;
                 this.rightValue = rightValue;
@@ -434,7 +497,7 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
                 this.rightColumnIndex = null;
             }
 
-            public BinaryComparisonPredicate(BiFunction<Double, Double, Boolean> comparisonFunction, Integer leftColumnIndex, Integer rightColumnIndex) {
+            public BinaryNumericComparisonPredicate(BiPredicate<Double, Double> comparisonFunction, Integer leftColumnIndex, Integer rightColumnIndex) {
                 this.comparisonFunction = comparisonFunction;
                 this.leftValue = null;
                 this.rightValue = null;
@@ -445,26 +508,87 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
             @Override
             public boolean check(List<Cell> row) {
                 if (leftValue != null && rightValue != null) {
-                    return comparisonFunction.apply(leftValue, rightValue);
+                    return comparisonFunction.test(leftValue, rightValue);
                 } else if (leftValue != null && rightColumnIndex != null) {
                     Cell rightCell = row.get(rightColumnIndex);
                     Double rightCellValue = rightCell.getType() == Type.DOUBLE ? rightCell.getAsDouble() : rightCell.getAsInt();
-                    return comparisonFunction.apply(leftValue, rightCellValue);
+                    return comparisonFunction.test(leftValue, rightCellValue);
                 } else if (leftColumnIndex != null && rightValue != null) {
                     Cell leftCell = row.get(leftColumnIndex);
                     Double leftCellValue = leftCell.getType() == Type.DOUBLE ? leftCell.getAsDouble() : leftCell.getAsInt();
-                    return comparisonFunction.apply(leftCellValue, rightValue);
+                    return comparisonFunction.test(leftCellValue, rightValue);
                 } else if (leftColumnIndex != null && rightColumnIndex != null) {
                     Cell leftCell = row.get(leftColumnIndex);
                     Cell rightCell = row.get(rightColumnIndex);
                     Double leftCellValue = leftCell.getType() == Type.DOUBLE ? leftCell.getAsDouble() : leftCell.getAsInt();
                     Double rightCellValue = rightCell.getType() == Type.DOUBLE ? rightCell.getAsDouble() : rightCell.getAsInt();
-                    return comparisonFunction.apply(leftCellValue, rightCellValue);
+                    return comparisonFunction.test(leftCellValue, rightCellValue);
                 } else {
                     return false;
                 }
             }
+        }
 
+        private final class BinaryStringComparisonPredicate implements Predicate {
+
+            private final String leftValue, rightValue;
+            private final Integer leftColumnIndex, rightColumnIndex;
+            private final BiPredicate<String, String> comparisonFunction;
+
+            public BinaryStringComparisonPredicate(BiPredicate<String, String> comparisonFunction, String leftValue, String rightValue) {
+                this.comparisonFunction = comparisonFunction;
+                this.leftValue = leftValue;
+                this.rightValue = rightValue;
+                this.leftColumnIndex = null;
+                this.rightColumnIndex = null;
+            }
+
+            public BinaryStringComparisonPredicate(BiPredicate<String, String> comparisonFunction, String leftValue, Integer rightColumnIndex) {
+                this.comparisonFunction = comparisonFunction;
+                this.leftValue = leftValue;
+                this.rightValue = null;
+                this.leftColumnIndex = null;
+                this.rightColumnIndex = rightColumnIndex;
+            }
+
+            public BinaryStringComparisonPredicate(BiPredicate<String, String> comparisonFunction, Integer leftColumnIndex, String rightValue) {
+                this.comparisonFunction = comparisonFunction;
+                this.leftValue = null;
+                this.rightValue = rightValue;
+                this.leftColumnIndex = leftColumnIndex;
+                this.rightColumnIndex = null;
+            }
+
+            public BinaryStringComparisonPredicate(BiPredicate<String, String> comparisonFunction, Integer leftColumnIndex, Integer rightColumnIndex) {
+                this.comparisonFunction = comparisonFunction;
+                this.leftValue = null;
+                this.rightValue = null;
+                this.leftColumnIndex = leftColumnIndex;
+                this.rightColumnIndex = rightColumnIndex;
+            }
+
+            @Override
+            public boolean check(List<Cell> row) {
+                if (leftValue != null && rightValue != null) {
+                    return comparisonFunction.test(leftValue, rightValue);
+                } else if (leftValue != null && rightColumnIndex != null) {
+                    Cell rightCell = row.get(rightColumnIndex);
+                    String rightCellValue = rightCell.getAsString();
+                    return comparisonFunction.test(leftValue, rightCellValue);
+                } else if (leftColumnIndex != null && rightValue != null) {
+                    Cell leftCell = row.get(leftColumnIndex);
+                    String leftCellValue = leftCell.getAsString();
+                    return comparisonFunction.test(leftCellValue, rightValue);
+                } else if (leftColumnIndex != null && rightColumnIndex != null) {
+                    Cell leftCell = row.get(leftColumnIndex);
+                    Cell rightCell = row.get(rightColumnIndex);
+                    String leftCellValue = leftCell.getAsString();
+                    String rightCellValue = rightCell.getAsString();
+                    return comparisonFunction.test(leftCellValue, rightCellValue);
+                } else {
+                    return false;
+                }
+            }
         }
     }
 
@@ -478,6 +602,14 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
         @Override
         public <S> Double visit(DoubleValue doubleValue, S context) {
             return doubleValue.getValue();
+        }
+    }
+
+    private final class RASQLExpressionStringValueVisitor extends ExpressionVisitorAdapter<String> {
+
+        @Override
+        public <S> String visit(StringValue stringValue, S context) {
+            return stringValue.getValue();
         }
     }
 

@@ -17,7 +17,8 @@ import uga.cs4370.mydbimpl.RAImpl;
 public class Driver {
 
     public static void main(String[] args) {
-        final String QUERY = "SELECT i.name as name, '100' as grade, dept_name, salary FROM instructor i WHERE salary > 100000 AND salary < 110000";
+        final String QUERY = "SELECT T.ID as ID, T.name as name, T.salary as salary, S.name as other, S.salary as otherSalary FROM instructor T, instructor S WHERE T.salary > S.salary AND S.dept_name = 'Comp. Sci.'";
+        // final String QUERY = "SELECT i.name as name, '100' as grade, dept_name, salary FROM instructor i WHERE salary > 100000 AND salary < 110000";
         // final String QUERY = "SELECT '100' AS h";
 
         final Map<String, Relation> TABLES = initTables();
