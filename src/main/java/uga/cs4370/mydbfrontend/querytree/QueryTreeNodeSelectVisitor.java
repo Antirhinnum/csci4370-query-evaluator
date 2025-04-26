@@ -105,7 +105,7 @@ public class QueryTreeNodeSelectVisitor extends SelectVisitorAdapter<QueryTreeNo
 
             if (operation instanceof UnionOp) {
                 leftNode = new UnionNode(leftNode, rightNode);
-            } else if (operation instanceof MinusOp) {
+            } else if (operation instanceof MinusOp || operation instanceof ExceptOp) {
                 leftNode = new ExceptNode(leftNode, rightNode);
             } else {
                 // Unsupported operation

@@ -189,7 +189,18 @@ public class RowExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> i
     public <S> Cell visit(EqualsTo equalsTo, S context) {
         Cell leftCell = equalsTo.getLeftExpression().accept(this, context);
         Cell rightCell = equalsTo.getRightExpression().accept(this, context);
-        return parseBooleanToCell(leftCell.equals(rightCell));
+
+        boolean result;
+        if (leftCell.getType() == Type.STRING && rightCell.getType() == Type.STRING) {
+            result = leftCell.equals(rightCell);
+        } else {
+            // Using Cell::equals() here would often fail since JSQLParser prefers parsing numbers as doubles instead of integers,
+            // meaning the expression "year = 2005" would fail since year is an INTEGER Cell while 2005 is a DOUBLE Cell.
+            BigDecimal left = parseCellToNumeric(leftCell);
+            BigDecimal right = parseCellToNumeric(rightCell);
+            result = left.compareTo(right) == 0;
+        }
+        return parseBooleanToCell(result);
     }
 
     @Override
@@ -244,7 +255,17 @@ public class RowExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> i
     public <S> Cell visit(NotEqualsTo notEqualsTo, S context) {
         Cell leftCell = notEqualsTo.getLeftExpression().accept(this, context);
         Cell rightCell = notEqualsTo.getRightExpression().accept(this, context);
-        return parseBooleanToCell(!leftCell.equals(rightCell));
+
+        boolean result;
+        if (leftCell.getType() == Type.STRING && rightCell.getType() == Type.STRING) {
+            result = !leftCell.equals(rightCell);
+        } else {
+            // See `<S> Cell visit(EqualsTo,S)`
+            BigDecimal left = parseCellToNumeric(leftCell);
+            BigDecimal right = parseCellToNumeric(rightCell);
+            result = left.compareTo(right) != 0;
+        }
+        return parseBooleanToCell(result);
     }
 
     @Override
