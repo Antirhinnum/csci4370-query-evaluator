@@ -38,12 +38,12 @@ public class RowExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> i
     }
 
     public static BigDecimal parseCellToNumeric(Cell c) {
-        if (c == null) return null;
+        if (c == null) throw new NullPointerException("Cell was null");
         if (c.getType() == Type.STRING) return null;
 
         if (c.getType() == Type.DOUBLE) return BigDecimal.valueOf(c.getAsDouble());
         else if (c.getType() == Type.INTEGER) return BigDecimal.valueOf(c.getAsInt());
-        else return null;
+        else throw new UnsupportedOperationException("Cannot convert Cell to a numeric type");
     }
 
     @Override
@@ -74,7 +74,7 @@ public class RowExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> i
         BigDecimal left = parseCellToNumeric(leftCell);
         BigDecimal right = parseCellToNumeric(rightCell);
 
-        if (left == null || right == null) return null;
+        if (left == null || right == null) throw new IllegalArgumentException("Cannot add non-numeric values");
         BigDecimal sum = left.add(right, MathContext.DECIMAL64);
 
         if (leftCell.getType() == Type.INTEGER && rightCell.getType() == Type.INTEGER) {
@@ -92,7 +92,7 @@ public class RowExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> i
         BigDecimal left = parseCellToNumeric(leftCell);
         BigDecimal right = parseCellToNumeric(rightCell);
 
-        if (left == null || right == null) return null;
+        if (left == null || right == null) throw new IllegalArgumentException("Cannot divide non-numeric values");
         BigDecimal quotient = left.divide(right, MathContext.DECIMAL64);
         return Cell.val(quotient.doubleValue());
     }
@@ -105,7 +105,7 @@ public class RowExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> i
         BigDecimal left = parseCellToNumeric(leftCell);
         BigDecimal right = parseCellToNumeric(rightCell);
 
-        if (left == null || right == null) return null;
+        if (left == null || right == null) throw new IllegalArgumentException("Cannot divide non-numeric values");
         BigDecimal quotient = left.divideToIntegralValue(right, MathContext.DECIMAL64);
         return Cell.val(quotient.intValue());
     }
@@ -118,7 +118,7 @@ public class RowExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> i
         BigDecimal left = parseCellToNumeric(leftCell);
         BigDecimal right = parseCellToNumeric(rightCell);
 
-        if (left == null || right == null) return null;
+        if (left == null || right == null) throw new IllegalArgumentException("Cannot multiply non-numeric values");
         BigDecimal product = left.multiply(right, MathContext.DECIMAL64);
 
         if (leftCell.getType() == Type.INTEGER && rightCell.getType() == Type.INTEGER) {
@@ -136,7 +136,7 @@ public class RowExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> i
         BigDecimal left = parseCellToNumeric(leftCell);
         BigDecimal right = parseCellToNumeric(rightCell);
 
-        if (left == null || right == null) return null;
+        if (left == null || right == null) throw new IllegalArgumentException("Cannot subtract non-numeric values");
         BigDecimal difference = left.subtract(right, MathContext.DECIMAL64);
 
         if (leftCell.getType() == Type.INTEGER && rightCell.getType() == Type.INTEGER) {
@@ -176,7 +176,8 @@ public class RowExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> i
         BigDecimal check = parseCellToNumeric(checkCell);
         BigDecimal lower = parseCellToNumeric(lowerBoundCell);
         BigDecimal upper = parseCellToNumeric(upperBoundCell);
-        if (check == null || lower == null || upper == null) return null;
+        if (check == null || lower == null || upper == null)
+            throw new IllegalArgumentException("Cannot check between non-numeric values");
 
         boolean result = check.compareTo(lower) >= 0 && check.compareTo(upper) <= 0;
         if (between.isNot()) {
@@ -211,7 +212,7 @@ public class RowExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> i
         BigDecimal left = parseCellToNumeric(leftCell);
         BigDecimal right = parseCellToNumeric(rightCell);
 
-        if (left == null || right == null) return null;
+        if (left == null || right == null) throw new IllegalArgumentException("Cannot compare non-numeric values using greater than");
         return parseBooleanToCell(left.compareTo(right) > 0);
     }
 
@@ -223,7 +224,7 @@ public class RowExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> i
         BigDecimal left = parseCellToNumeric(leftCell);
         BigDecimal right = parseCellToNumeric(rightCell);
 
-        if (left == null || right == null) return null;
+        if (left == null || right == null) throw new IllegalArgumentException("Cannot compare non-numeric values using greater than or equal to");
         return parseBooleanToCell(left.compareTo(right) >= 0);
     }
 
@@ -235,7 +236,7 @@ public class RowExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> i
         BigDecimal left = parseCellToNumeric(leftCell);
         BigDecimal right = parseCellToNumeric(rightCell);
 
-        if (left == null || right == null) return null;
+        if (left == null || right == null) throw new IllegalArgumentException("Cannot compare non-numeric values using less than");
         return parseBooleanToCell(left.compareTo(right) < 0);
     }
 
@@ -247,7 +248,7 @@ public class RowExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> i
         BigDecimal left = parseCellToNumeric(leftCell);
         BigDecimal right = parseCellToNumeric(rightCell);
 
-        if (left == null || right == null) return null;
+        if (left == null || right == null) throw new IllegalArgumentException("Cannot compare non-numeric values using less than or equal to");
         return parseBooleanToCell(left.compareTo(right) <= 0);
     }
 
@@ -273,7 +274,7 @@ public class RowExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> i
 
         // How I wish `context instanceof List<Cell>` worked.
         if (!(context instanceof List<?> row) || row.isEmpty() || !(row.get(0) instanceof Cell)) {
-            return null;
+            throw new IllegalArgumentException("Cannot evaluate column without row instance");
         }
 
         String columnName;
@@ -299,7 +300,7 @@ public class RowExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> i
             }
         }
 
-        return null;
+        throw new RuntimeException("Failed to evaluate column '" + columnName + "'");
     }
 
     @Override

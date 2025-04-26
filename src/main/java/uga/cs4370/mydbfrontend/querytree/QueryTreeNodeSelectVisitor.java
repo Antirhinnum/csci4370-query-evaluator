@@ -46,7 +46,7 @@ public class QueryTreeNodeSelectVisitor extends SelectVisitorAdapter<QueryTreeNo
     public <S> QueryTreeNode visit(PlainSelect plainSelect, S context) {
 
         if (!(context instanceof SimpleQueryEvaluator evaluator)) {
-            return null;
+            throw new IllegalArgumentException("context must be a SimpleQueryEvaluator");
         }
 
         QueryTreeNode sourceNode = null;
@@ -94,7 +94,7 @@ public class QueryTreeNodeSelectVisitor extends SelectVisitorAdapter<QueryTreeNo
         // Evaluate set operations left-to-right.
         List<Select> selects = setOpList.getSelects();
         if (selects.isEmpty()) {
-            return null;
+            throw new RuntimeException("Don't know how to evaluate set operations list with no selects");
         }
 
         List<SetOperation> setOps = setOpList.getOperations();
@@ -109,7 +109,7 @@ public class QueryTreeNodeSelectVisitor extends SelectVisitorAdapter<QueryTreeNo
                 leftNode = new ExceptNode(leftNode, rightNode);
             } else {
                 // Unsupported operation
-                return null;
+                throw new UnsupportedOperationException("Cannot handle operation " + operation);
             }
         }
         return leftNode;

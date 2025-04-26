@@ -26,7 +26,7 @@ public class ProjectedColumnExpressionVisitor extends ExpressionVisitorAdapter<P
 
     private static <S> ProjectedAttributes visitConstantWithAlias(Type type, BiFunction<Relation, List<Cell>, List<Cell>> generator, S context) {
         if (!(context instanceof SelectItem<?> selectItem)) {
-            return null;
+            throw new IllegalArgumentException("context is not a SelectItem");
         }
 
         final String name = selectItem.getAlias() != null ? selectItem.getUnquotedAliasName() : selectItem.toString();
@@ -59,7 +59,7 @@ public class ProjectedColumnExpressionVisitor extends ExpressionVisitorAdapter<P
     @Override
     public <S> ProjectedAttributes visit(Column column, S context) {
         if (!(context instanceof SelectItem<?> selectItem)) {
-            return null;
+            throw new IllegalArgumentException("context is not a SelectItem");
         }
 
         final String name = Optional.ofNullable(selectItem.getUnquotedAliasName()).orElse(column.getColumnName());
@@ -70,7 +70,7 @@ public class ProjectedColumnExpressionVisitor extends ExpressionVisitorAdapter<P
                 int index = r.getAttrs().indexOf(probableColumn.get());
                 return List.of(r.getTypes().get(index));
             } else {
-                return null;
+                throw new RuntimeException("Column " + column.getColumnName() + " not found");
             }
         }, r -> List.of(name), (r, row) -> {
             Optional<String> probableColumn = r.getAttrs().stream().filter(s -> s.endsWith(columnNameToSearchFor)).findFirst();
@@ -78,7 +78,7 @@ public class ProjectedColumnExpressionVisitor extends ExpressionVisitorAdapter<P
                 int index = r.getAttrs().indexOf(probableColumn.get());
                 return List.of(row.get(index));
             } else {
-                return null;
+                throw new RuntimeException("Column " + column.getColumnName() + " not found");
             }
         });
     }
@@ -115,7 +115,7 @@ public class ProjectedColumnExpressionVisitor extends ExpressionVisitorAdapter<P
 
     private <S> ProjectedAttributes visitBinaryArithmeticExpressionWithAlias(BinaryExpression binaryExpression, BiFunction<BigDecimal, BigDecimal, BigDecimal> operation, S context) {
         if (!(context instanceof SelectItem<?> selectItem)) {
-            return null;
+            throw new IllegalArgumentException("context is not a SelectItem");
         }
 
         final ProjectedAttributes leftColumns = binaryExpression.getLeftExpression().accept(this, context);

@@ -38,12 +38,12 @@ public final class SimpleQueryEvaluator {
         try {
             Statement parsedQuery = CCJSqlParserUtil.parse(query);
             if (parsedQuery == null) {
-                return null;
+                throw new RuntimeException("Could not parse query: " + query);
             }
 
             QueryTree queryTree = parsedQuery.accept(this.visitor, this);
             if (queryTree == null) {
-                return null;
+                throw new RuntimeException("Could not parse query: " + query);
             }
 
             return queryTree.evaluate(this.ra, this.knownRelations);
