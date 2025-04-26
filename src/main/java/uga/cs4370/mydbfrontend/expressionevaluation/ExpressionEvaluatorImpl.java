@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 
 public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> implements ExpressionEvaluator {
-    final Relation schema;
+    protected final Relation schema;
 
     public ExpressionEvaluatorImpl(Relation schema) {
         this.schema = schema;

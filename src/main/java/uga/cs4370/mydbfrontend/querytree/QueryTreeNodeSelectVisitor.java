@@ -1,7 +1,6 @@
 package uga.cs4370.mydbfrontend.querytree;
 
 import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.ExpressionVisitor;
 import net.sf.jsqlparser.statement.select.*;
 import uga.cs4370.mydb.Predicate;
 import uga.cs4370.mydb.Relation;
@@ -70,17 +69,10 @@ public class QueryTreeNodeSelectVisitor extends SelectVisitorAdapter<QueryTreeNo
 
         List<SelectItem<?>> selectItems = plainSelect.getSelectItems();
         if (selectItems != null) {
-            ExpressionVisitor<ProjectedAttributes> expressionVisitor = new ProjectedColumnExpressionVisitor();
-            SelectItemVisitor<ProjectedAttributes> selectItemVisitor = new SelectItemVisitor<>() {
-                @Override
-                public <S2> ProjectedAttributes visit(SelectItem<? extends Expression> selectItem, S2 context) {
-                    return selectItem.getExpression().accept(expressionVisitor, selectItem);
-                }
-            };
-
+            ProjectedColumnExpressionVisitor expressionVisitor = new ProjectedColumnExpressionVisitor();
             List<ProjectedAttributes> projectedColumns = new ArrayList<>();
             for (SelectItem<?> selectItem : selectItems) {
-                projectedColumns.add(selectItem.accept(selectItemVisitor, context));
+                projectedColumns.add(selectItem.accept(expressionVisitor, selectItem));
             }
             sourceNode = new ExtendedProjectNode(sourceNode, projectedColumns);
         }
