@@ -3,7 +3,7 @@ package uga.cs4370.mydbfrontend;
 import java.util.Optional;
 
 /**
- * Reprents an object that can be both named and aliased.
+ * Represents an object that can be both named and aliased.
  */
 public interface Aliasable<T> extends Nameable<T> {
 

@@ -62,7 +62,7 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
     private final List<Table> tablesFromQuery;
     private List<Aliasable<Relation>> relationsFromQuery;
     private List<String> attributesFromRelations;
-    private Optional<Expression> whereExpression;
+    private Expression whereExpression;
     private boolean allColumns;
 
     public RASQLVisitor(RA ra, Map<String, Relation> knownRelations) {
@@ -71,7 +71,7 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
         this.constantSelectItemsFromQuery = new ArrayList<>();
         this.tablesFromQuery = new ArrayList<>();
         this.attributesFromRelations = new ArrayList<>();
-        this.whereExpression = Optional.empty();
+        this.whereExpression = null;
 
         this.ra = ra;
         this.knownRelations = knownRelations;
@@ -99,10 +99,7 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
                 row.add(Cell.val(constant));
             }
 
-            Relation constants = new RelationBuilder()
-                    .attributeNames(names)
-                    .attributeTypes(types)
-                    .build();
+            Relation constants = new RelationBuilder().attributeNames(names).attributeTypes(types).build();
             constants.insert(row);
             relationsFromQuery.add(new AliasableImpl<>(constants, "dual"));
         }
@@ -113,31 +110,27 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
             result = ra.cartesianProduct(result, relationsFromQuery.get(i).getValue());
         }
 
-        if (this.whereExpression.isPresent()) {
+        if (this.whereExpression != null) {
             // Process the where clause now that we know the attributes of the final relation
             ExpressionVisitor<Predicate> visitor = new RASQLExpressionLogicVisitor();
-            Predicate predicate = this.whereExpression.get().accept(visitor, result);
+            Predicate predicate = this.whereExpression.accept(visitor, result);
             result = ra.select(result, predicate);
         }
 
         if (!this.allColumns) {
-            List<String> columnNamesToProject = columns.stream()
-                    .map(c -> c.getName())
-                    .toList();
+            List<String> columnNamesToProject = columns.stream().map(Nameable::getName).toList();
             result = ra.project(result, columnNamesToProject);
         }
 
         // Remove the leading table name from every attribute unless doing so would create duplicate attributes
         List<String> originalAttrs = result.getAttrs();
         List<String> desiredRenames = columns.stream().map(c -> {
-            if (c.getAlias().isPresent()) {
-                return c.getAlias().get();
-            }
+//            if (c.getAlias().isPresent()) {
+//                return c.getAlias().get();
+//            }
             return c.getValue();
         }).toList();
-        Set<String> duplicateDesiredRenames = desiredRenames.stream()
-                .filter(rename -> Collections.frequency(desiredRenames, rename) > 1)
-                .collect(java.util.stream.Collectors.toSet());
+        Set<String> duplicateDesiredRenames = desiredRenames.stream().filter(rename -> Collections.frequency(desiredRenames, rename) > 1).collect(java.util.stream.Collectors.toSet());
         if (!duplicateDesiredRenames.isEmpty()) {
             for (int i = 0; i < originalAttrs.size(); i++) {
                 String rename = desiredRenames.get(i);
@@ -174,10 +167,9 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
                 throw new UnsupportedOperationException("Cannot process query where tables share a name");
             }
 
-            // Prepend all attributes with the relations's alias/name
+            // Prepend all attributes with the relation's alias/name
             List<String> originalAttributes = relation.getAttrs();
-            List<String> newAttributes = originalAttributes.stream()
-                    .map(a -> aliasableRelation.getNameOrAlias() + "." + a).toList();
+            List<String> newAttributes = originalAttributes.stream().map(a -> aliasableRelation.getNameOrAlias() + "." + a).toList();
             Relation renamedRelation = ra.rename(relation, originalAttributes, newAttributes);
             aliasableRelation.setValue(renamedRelation);
 
@@ -213,9 +205,7 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
         String columnName = column.getColumnName();
         String tableName = column.getTableName();
         if (tableName != null) {
-            Optional<Aliasable<Relation>> referencedTable = relationsFromQuery.stream()
-                    .filter(r -> r.getNameOrAlias().equals(tableName))
-                    .findFirst();
+            Optional<Aliasable<Relation>> referencedTable = relationsFromQuery.stream().filter(r -> r.getNameOrAlias().equals(tableName)).findFirst();
 
             if (referencedTable.isEmpty()) {
                 throw new UnsupportedOperationException("Column " + columnName + " references an unknown table " + tableName);
@@ -232,8 +222,7 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
 
         // No explicit table name, so try to match the column's name to a known relation's attribute
         String nameSuffix = "." + columnName; // All attributes are of form "table.attr", so check for any that end with this attribute.
-        List<String> possibleAttributes = attributesFromRelations.stream()
-                .filter(a -> a.endsWith(nameSuffix)).toList();
+        List<String> possibleAttributes = attributesFromRelations.stream().filter(a -> a.endsWith(nameSuffix)).toList();
         if (possibleAttributes.size() != 1) {
             throw new UnsupportedOperationException("Attribute " + columnName + " either doesn't exist or is ambiguous");
         }
@@ -281,7 +270,7 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
 
         @Override
         public <S> Void visit(PlainSelect plainSelect, S context) {
-            plainSelect.getSelectItems().forEach(s -> selectItemsFromQuery.add(s));
+            selectItemsFromQuery.addAll(plainSelect.getSelectItems());
             FromItem fromItem = plainSelect.getFromItem();
             if (fromItem != null) {
                 fromItem.accept(RASQLVisitor.this.fromItemVisitor);
@@ -291,7 +280,7 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
                 // TODO: Explicit (natural or inner) join keyword
                 joins.forEach(j -> j.getFromItem().accept(RASQLVisitor.this.fromItemVisitor));
             }
-            RASQLVisitor.this.whereExpression = Optional.ofNullable(plainSelect.getWhere());
+            RASQLVisitor.this.whereExpression = plainSelect.getWhere();
             return super.visit(plainSelect, context);
         }
     }
@@ -390,7 +379,7 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
             Column rightColumn = right.accept(columnVisitor, context);
             Integer leftColumnIndex = null, rightColumnIndex = null;
 
-            // If columns are found, make sure they're numerically comparable
+            // If columns are found, make sure they're comparable
             if (leftColumn != null) {
                 String leftName = getTableQualifiedNameFromColumn(leftColumn);
                 if (!relation.hasAttr(leftName)) {
@@ -443,7 +432,7 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
         public <S> Predicate visit(EqualsTo equalsTo, S context) {
             Predicate result = getBinaryMathLogicPredicate(equalsTo, context, (a, b) -> a.compareTo(b) == 0);
             if (result == null) {
-                result = getBinaryStringCompPredicate(equalsTo, context, (a, b) -> a.equals(b));
+                result = getBinaryStringCompPredicate(equalsTo, context, String::equals);
             }
             return result;
         }
@@ -467,7 +456,7 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
             return getBinaryMathLogicPredicate(minorThan, context, (a, b) -> a.compareTo(b) < 0);
         }
 
-        private final class BinaryNumericComparisonPredicate implements Predicate {
+        private static final class BinaryNumericComparisonPredicate implements Predicate {
 
             private final Double leftValue, rightValue;
             private final Integer leftColumnIndex, rightColumnIndex;
@@ -529,7 +518,7 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
             }
         }
 
-        private final class BinaryStringComparisonPredicate implements Predicate {
+        private static final class BinaryStringComparisonPredicate implements Predicate {
 
             private final String leftValue, rightValue;
             private final Integer leftColumnIndex, rightColumnIndex;
@@ -592,7 +581,7 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
         }
     }
 
-    private final class RASQLExpressionNumericValueVisitor extends ExpressionVisitorAdapter<Double> {
+    private static final class RASQLExpressionNumericValueVisitor extends ExpressionVisitorAdapter<Double> {
 
         @Override
         public <S> Double visit(LongValue longValue, S context) {
@@ -605,7 +594,7 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
         }
     }
 
-    private final class RASQLExpressionStringValueVisitor extends ExpressionVisitorAdapter<String> {
+    private static final class RASQLExpressionStringValueVisitor extends ExpressionVisitorAdapter<String> {
 
         @Override
         public <S> String visit(StringValue stringValue, S context) {
@@ -613,7 +602,7 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
         }
     }
 
-    private final class RASQLExpressionColumnNumericValueVisitor extends ExpressionVisitorAdapter<Column> {
+    private static final class RASQLExpressionColumnNumericValueVisitor extends ExpressionVisitorAdapter<Column> {
 
         @Override
         public <S> Column visit(Column column, S context) {

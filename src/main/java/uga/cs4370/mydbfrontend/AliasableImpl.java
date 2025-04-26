@@ -6,7 +6,7 @@ public final class AliasableImpl<T> implements Aliasable<T> {
 
     private T value;
     private String name;
-    private Optional<String> alias;
+    private String alias;
 
     public AliasableImpl(T value, String name) {
         this(value, name, null);
@@ -20,12 +20,12 @@ public final class AliasableImpl<T> implements Aliasable<T> {
 
     @Override
     public Optional<String> getAlias() {
-        return this.alias;
+        return Optional.of(this.alias);
     }
 
     @Override
     public void setAlias(String value) {
-        this.alias = Optional.ofNullable(value);
+        this.alias = value;
     }
 
     @Override
@@ -53,6 +53,6 @@ public final class AliasableImpl<T> implements Aliasable<T> {
 
     @Override
     public String getNameOrAlias() {
-        return this.alias.orElse(this.name);
+        return (this.alias != null) ? this.alias : this.name;
     }
 }
