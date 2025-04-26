@@ -8,6 +8,11 @@ import java.util.List;
 /**
  * An object that can evaluate the result of an {@link Expression} given a certain row in a relation.
  */
-public interface RowExpressionEvaluator {
+public interface RowExpressionEvaluator extends ExpressionEvaluator {
     Cell evaluate(Expression expression, List<Cell> row);
+
+    @Override
+    default Cell evaluate(Expression expression)  {
+        return evaluate(expression, null);
+    };
 }

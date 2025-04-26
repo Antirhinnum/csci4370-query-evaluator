@@ -85,6 +85,17 @@ public class QueryTreeNodeSelectVisitor extends SelectVisitorAdapter<QueryTreeNo
             sourceNode = new ExtendedProjectNode(sourceNode, projectedColumns);
         }
 
+        Limit limit = plainSelect.getLimit();
+        if (limit != null) {
+            Expression limitExpression = limit.getRowCount();
+            Expression offsetExpression = limit.getOffset();
+            if (offsetExpression == null && plainSelect.getOffset() != null) {
+                Offset offsetFromSelect = plainSelect.getOffset();
+                offsetExpression = offsetFromSelect.getOffset();
+            }
+            sourceNode = new LimitNode(sourceNode, limitExpression, offsetExpression);
+        }
+
         return sourceNode;
     }
 

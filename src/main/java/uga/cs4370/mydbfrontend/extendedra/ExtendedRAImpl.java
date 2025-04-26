@@ -1,6 +1,7 @@
 package uga.cs4370.mydbfrontend.extendedra;
 
 import uga.cs4370.mydb.*;
+import uga.cs4370.mydbfrontend.Utils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,6 +44,23 @@ public final class ExtendedRAImpl implements ExtendedRA {
             result.insert(newRow);
         }
 
+        return result;
+    }
+
+    @Override
+    public Relation limit(Relation rel, int limit, int offset) {
+        if (limit < 1) {
+            throw new IllegalArgumentException("limit must be non-negative");
+        }
+        if (offset < 0) {
+            throw new IllegalArgumentException("offset must be positive");
+        }
+
+        Relation result = Utils.copySchema(rel);
+        for (int i = offset; i < offset + limit && i < rel.getSize(); i++) {
+            List<Cell> row = rel.getRow(i);
+            result.insert(row);
+        }
         return result;
     }
 
