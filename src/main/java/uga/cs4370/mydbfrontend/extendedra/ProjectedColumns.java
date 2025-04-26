@@ -14,9 +14,7 @@ public class ProjectedColumns {
     private final Function<Relation, List<String>> columnNameGenerator;
     private final BiFunction<Relation, List<Cell>, List<Cell>> rowValueGenerator;
 
-    public ProjectedColumns(Function<Relation, List<Type>> columnTypeGenerator, Function<Relation,
-            List<String>> columnNameGenerator, BiFunction<Relation, List<Cell>,
-            List<Cell>> rowValueGenerator) {
+    public ProjectedColumns(Function<Relation, List<Type>> columnTypeGenerator, Function<Relation, List<String>> columnNameGenerator, BiFunction<Relation, List<Cell>, List<Cell>> rowValueGenerator) {
         this.columnTypeGenerator = columnTypeGenerator;
         this.columnNameGenerator = columnNameGenerator;
         this.rowValueGenerator = rowValueGenerator;

@@ -9,6 +9,7 @@ import uga.cs4370.mydbfrontend.extendedra.ExtendedRA;
 import uga.cs4370.mydbfrontend.querytree.QueryTree;
 import uga.cs4370.mydbfrontend.querytree.QueryTreeStatementVisitor;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -17,12 +18,12 @@ import java.util.List;
 public final class SimpleQueryEvaluator {
 
     private final ExtendedRA ra;
-    private final List<Aliasable<Relation>> relations;
+    private final List<Nameable<Relation>> knownRelations;
     private final StatementVisitor<QueryTree> visitor;
 
-    public SimpleQueryEvaluator(ExtendedRA ra, List<Aliasable<Relation>> relations) {
+    public SimpleQueryEvaluator(ExtendedRA ra, List<Nameable<Relation>> knownRelations) {
         this.ra = ra;
-        this.relations = relations;
+        this.knownRelations = knownRelations;
         this.visitor = new QueryTreeStatementVisitor();
     }
 
@@ -45,9 +46,13 @@ public final class SimpleQueryEvaluator {
                 return null;
             }
 
-            return queryTree.evaluate(this.ra, this.relations);
+            return queryTree.evaluate(this.ra, this.knownRelations);
         } catch (JSQLParserException e) {
             return null;
         }
+    }
+
+    public List<Nameable<Relation>> getKnownRelations() {
+        return new ArrayList<>(this.knownRelations);
     }
 }

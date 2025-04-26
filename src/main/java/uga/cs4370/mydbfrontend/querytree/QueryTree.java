@@ -1,7 +1,7 @@
 package uga.cs4370.mydbfrontend.querytree;
 
 import uga.cs4370.mydb.Relation;
-import uga.cs4370.mydbfrontend.Aliasable;
+import uga.cs4370.mydbfrontend.Nameable;
 import uga.cs4370.mydbfrontend.extendedra.ExtendedRA;
 
 import java.util.List;
@@ -17,8 +17,13 @@ public class QueryTree implements QueryTreeNode {
     }
 
     @Override
-    public Relation evaluate(ExtendedRA ra, List<Aliasable<Relation>> relations) {
-        return this.root.evaluate(ra, relations);
+    public Relation evaluate(ExtendedRA ra, List<Nameable<Relation>> knownRelations) {
+        return this.root.evaluate(ra, knownRelations);
+    }
+
+    @Override
+    public Relation getRelationSchema(List<Nameable<Relation>> knownRelations) {
+        return this.root.getRelationSchema(knownRelations);
     }
 }
 

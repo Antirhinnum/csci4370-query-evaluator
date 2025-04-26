@@ -1,50 +1,17 @@
 package uga.cs4370.mydbfrontend;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.BiPredicate;
-
-import net.sf.jsqlparser.expression.Alias;
-import net.sf.jsqlparser.expression.BinaryExpression;
-import net.sf.jsqlparser.expression.DoubleValue;
-import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.ExpressionVisitor;
-import net.sf.jsqlparser.expression.ExpressionVisitorAdapter;
-import net.sf.jsqlparser.expression.LongValue;
-import net.sf.jsqlparser.expression.NotExpression;
-import net.sf.jsqlparser.expression.StringValue;
+import net.sf.jsqlparser.expression.*;
 import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
 import net.sf.jsqlparser.expression.operators.conditional.OrExpression;
-import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
-import net.sf.jsqlparser.expression.operators.relational.GreaterThan;
-import net.sf.jsqlparser.expression.operators.relational.GreaterThanEquals;
-import net.sf.jsqlparser.expression.operators.relational.MinorThan;
-import net.sf.jsqlparser.expression.operators.relational.MinorThanEquals;
-import net.sf.jsqlparser.expression.operators.relational.NotEqualsTo;
+import net.sf.jsqlparser.expression.operators.relational.*;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.StatementVisitorAdapter;
-import net.sf.jsqlparser.statement.select.AllColumns;
-import net.sf.jsqlparser.statement.select.FromItem;
-import net.sf.jsqlparser.statement.select.FromItemVisitor;
-import net.sf.jsqlparser.statement.select.FromItemVisitorAdapter;
-import net.sf.jsqlparser.statement.select.Join;
-import net.sf.jsqlparser.statement.select.PlainSelect;
-import net.sf.jsqlparser.statement.select.Select;
-import net.sf.jsqlparser.statement.select.SelectItem;
-import net.sf.jsqlparser.statement.select.SelectVisitor;
-import net.sf.jsqlparser.statement.select.SelectVisitorAdapter;
-import uga.cs4370.mydb.Cell;
-import uga.cs4370.mydb.Predicate;
-import uga.cs4370.mydb.RA;
-import uga.cs4370.mydb.Relation;
-import uga.cs4370.mydb.RelationBuilder;
-import uga.cs4370.mydb.Type;
+import net.sf.jsqlparser.statement.select.*;
+import uga.cs4370.mydb.*;
+
+import java.util.*;
+import java.util.function.BiPredicate;
 
 /**
  * Visits an {@link net.sf.jsqlparser.statement.select.Select SQL query} and
@@ -229,6 +196,36 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
 
         // Get the attribute's name in the correct format.
         return possibleAttributes.get(0);
+    }
+
+    private static final class RASQLExpressionNumericValueVisitor extends ExpressionVisitorAdapter<Double> {
+
+        @Override
+        public <S> Double visit(LongValue longValue, S context) {
+            return (double) longValue.getValue();
+        }
+
+        @Override
+        public <S> Double visit(DoubleValue doubleValue, S context) {
+            return doubleValue.getValue();
+        }
+    }
+
+    private static final class RASQLExpressionStringValueVisitor extends ExpressionVisitorAdapter<String> {
+
+        @Override
+        public <S> String visit(StringValue stringValue, S context) {
+            return stringValue.getValue();
+        }
+    }
+
+    private static final class RASQLExpressionColumnNumericValueVisitor extends ExpressionVisitorAdapter<Column> {
+
+        @Override
+        public <S> Column visit(Column column, S context) {
+            return column;
+        }
+
     }
 
     private final class RASQLSelectItemExpressionVisitor extends ExpressionVisitorAdapter<Nameable<String>> {
@@ -579,35 +576,5 @@ public class RASQLVisitor extends StatementVisitorAdapter<Relation> {
                 }
             }
         }
-    }
-
-    private static final class RASQLExpressionNumericValueVisitor extends ExpressionVisitorAdapter<Double> {
-
-        @Override
-        public <S> Double visit(LongValue longValue, S context) {
-            return (double) longValue.getValue();
-        }
-
-        @Override
-        public <S> Double visit(DoubleValue doubleValue, S context) {
-            return doubleValue.getValue();
-        }
-    }
-
-    private static final class RASQLExpressionStringValueVisitor extends ExpressionVisitorAdapter<String> {
-
-        @Override
-        public <S> String visit(StringValue stringValue, S context) {
-            return stringValue.getValue();
-        }
-    }
-
-    private static final class RASQLExpressionColumnNumericValueVisitor extends ExpressionVisitorAdapter<Column> {
-
-        @Override
-        public <S> Column visit(Column column, S context) {
-            return column;
-        }
-
     }
 }

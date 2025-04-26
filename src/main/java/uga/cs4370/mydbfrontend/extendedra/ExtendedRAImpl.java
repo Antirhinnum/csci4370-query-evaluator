@@ -22,10 +22,7 @@ public final class ExtendedRAImpl implements ExtendedRA {
             attrTypes.addAll(projectedColumn.getColumnTypes(rel));
         }
 
-        Relation result = new RelationBuilder()
-                .attributeNames(attrNames)
-                .attributeTypes(attrTypes)
-                .build();
+        Relation result = new RelationBuilder().attributeNames(attrNames).attributeTypes(attrTypes).build();
 
         if (rel != null) {
             for (int i = 0; i < rel.getSize(); i++) {
@@ -36,9 +33,8 @@ public final class ExtendedRAImpl implements ExtendedRA {
                 }
                 result.insert(newRow);
             }
-        }
-        else {
-            // We can project
+        } else {
+            // We can project a single empty row.
             List<Cell> row = List.of();
             List<Cell> newRow = new ArrayList<>();
             for (ProjectedColumns projectedColumn : projectedColumns) {

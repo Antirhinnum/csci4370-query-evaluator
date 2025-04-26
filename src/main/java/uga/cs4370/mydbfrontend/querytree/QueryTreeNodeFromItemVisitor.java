@@ -2,6 +2,7 @@ package uga.cs4370.mydbfrontend.querytree;
 
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.select.*;
+import uga.cs4370.mydbfrontend.querytree.nodes.RelationNode;
 
 public class QueryTreeNodeFromItemVisitor extends FromItemVisitorAdapter<QueryTreeNode> {
     @Override

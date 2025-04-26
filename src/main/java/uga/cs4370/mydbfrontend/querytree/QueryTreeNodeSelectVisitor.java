@@ -3,48 +3,70 @@ package uga.cs4370.mydbfrontend.querytree;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.ExpressionVisitor;
 import net.sf.jsqlparser.statement.select.*;
+import uga.cs4370.mydb.Predicate;
+import uga.cs4370.mydb.Relation;
+import uga.cs4370.mydbfrontend.SimpleQueryEvaluator;
+import uga.cs4370.mydbfrontend.expressionevaluation.RowExpressionEvaluatorImpl;
 import uga.cs4370.mydbfrontend.extendedra.ProjectedColumns;
+import uga.cs4370.mydbfrontend.querytree.nodes.*;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 public class QueryTreeNodeSelectVisitor extends SelectVisitorAdapter<QueryTreeNode> {
+    private static <S> QueryTreeNode evaluateJoins(QueryTreeNode sourceNode, List<Join> joins, SimpleQueryEvaluator evaluator) {
+        FromItemVisitor<QueryTreeNode> fromItemVisitor = new QueryTreeNodeFromItemVisitor();
+        for (Join join : joins) {
+            QueryTreeNode addedNode = join.getRightItem().accept(fromItemVisitor, evaluator);
+            if (join.isSimple() || join.isCross()) {
+                sourceNode = new CartesianProductNode(sourceNode, addedNode);
+            } else if (join.isInner()) {
+                Collection<Expression> onExpressions = join.getOnExpressions();
+                if (onExpressions != null && !onExpressions.isEmpty()) {
+                    for (Expression expression : onExpressions) {
+                        Relation schema = sourceNode.getRelationSchema(evaluator.getKnownRelations());
+                        RowExpressionEvaluatorImpl rowEvaluator = new RowExpressionEvaluatorImpl(schema);
+                        Predicate predicate = new ExpressionPredicateImpl(rowEvaluator, expression);
+                        sourceNode = new ThetaJoinNode(sourceNode, addedNode, predicate);
+                    }
+                }
+            } else if (join.isNatural()) {
+                sourceNode = new NaturalJoinNode(sourceNode, addedNode);
+            }
+            // TODO: Support other join types
+        }
+        return sourceNode;
+    }
+
     @Override
     public <S> QueryTreeNode visit(PlainSelect plainSelect, S context) {
 
-        FromItemVisitor<QueryTreeNode> fromItemVisitor = new QueryTreeNodeFromItemVisitor();
+        if (!(context instanceof SimpleQueryEvaluator evaluator)) {
+            return null;
+        }
+
         QueryTreeNode sourceNode = null;
         FromItem fromItem = plainSelect.getFromItem();
         if (fromItem != null) {
+            FromItemVisitor<QueryTreeNode> fromItemVisitor = new QueryTreeNodeFromItemVisitor();
             sourceNode = fromItem.accept(fromItemVisitor, context);
             List<Join> joins = plainSelect.getJoins();
             if (joins != null) {
-                for (Join join : joins) {
-                    QueryTreeNode addedNode = join.getRightItem().accept(fromItemVisitor, context);
-                    if (join.isSimple() || join.isCross()) {
-                        sourceNode = new CartesianProductNode(sourceNode, addedNode);
-                    } else if (join.isInner()) {
-                        // TODO: Evaluate predicate
-                        sourceNode = new ThetaJoinNode(sourceNode, addedNode, null);
-                    } else if (join.isNatural()) {
-                        sourceNode = new NaturalJoinNode(sourceNode, addedNode);
-                    } else {
-                        // Unsupported join type
-                        return null;
-                    }
-                }
+                sourceNode = evaluateJoins(sourceNode, joins, evaluator);
             }
-
-        } else {
-            // TODO: Handle no source relations.
         }
 
-        // TODO: Handle WHERE clause if one exists.
-        // Each AND'ed predicate should be its own SelectNode
+        Expression whereClause = plainSelect.getWhere();
+        if (sourceNode != null && whereClause != null) {
+            Relation schema = sourceNode.getRelationSchema(evaluator.getKnownRelations());
+            RowExpressionEvaluatorImpl rowEvaluator = new RowExpressionEvaluatorImpl(schema);
+            Predicate predicate = new ExpressionPredicateImpl(rowEvaluator, whereClause);
+            sourceNode = new SelectNode(sourceNode, predicate);
+        }
 
         List<SelectItem<?>> selectItems = plainSelect.getSelectItems();
         if (selectItems != null) {
-
             ExpressionVisitor<ProjectedColumns> expressionVisitor = new ProjectedColumnExpressionVisitor();
             SelectItemVisitor<ProjectedColumns> selectItemVisitor = new SelectItemVisitor<>() {
                 @Override

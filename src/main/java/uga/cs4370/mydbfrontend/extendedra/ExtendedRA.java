@@ -12,7 +12,7 @@ public interface ExtendedRA extends RA {
      * this method allows selecting arbitrary data based on the input relation. This includes columns, the all columns
      * expression (*), algebraic expressions, constant values, etc.
      *
-     * @param rel The relation to project from, or null. If null, a relation with one row will be produced.
+     * @param rel              The relation to project from, or null. If null, a relation with one row will be produced.
      * @param projectedColumns The columns to project.
      * @return A new relation with all projected columns.
      */
