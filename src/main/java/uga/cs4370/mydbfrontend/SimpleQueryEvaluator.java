@@ -52,6 +52,9 @@ public final class SimpleQueryEvaluator {
         }
     }
 
+    /**
+     * @return A {@link List} of all {@link Relation Relations} this evaluator knows about. {@link Relation Relations} not in this list cannot be used.
+     */
     public List<Nameable<Relation>> getKnownRelations() {
         return new ArrayList<>(this.knownRelations);
     }

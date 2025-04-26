@@ -13,13 +13,13 @@ public final class ExtendedRAImpl implements ExtendedRA {
     }
 
     @Override
-    public Relation extendedProject(Relation rel, List<ProjectedColumns> projectedColumns) {
+    public Relation extendedProject(Relation rel, List<ProjectedAttributes> projectedAttributesList) {
 
         List<String> attrNames = new ArrayList<>();
         List<Type> attrTypes = new ArrayList<>();
-        for (ProjectedColumns projectedColumn : projectedColumns) {
-            attrNames.addAll(projectedColumn.getColumnNames(rel));
-            attrTypes.addAll(projectedColumn.getColumnTypes(rel));
+        for (ProjectedAttributes projectedColumn : projectedAttributesList) {
+            attrNames.addAll(projectedColumn.getAttrNames(rel));
+            attrTypes.addAll(projectedColumn.getAttrTypes(rel));
         }
 
         Relation result = new RelationBuilder().attributeNames(attrNames).attributeTypes(attrTypes).build();
@@ -28,8 +28,8 @@ public final class ExtendedRAImpl implements ExtendedRA {
             for (int i = 0; i < rel.getSize(); i++) {
                 List<Cell> row = rel.getRow(i);
                 List<Cell> newRow = new ArrayList<>();
-                for (ProjectedColumns projectedColumn : projectedColumns) {
-                    newRow.addAll(projectedColumn.getValuesForRow(rel, row));
+                for (ProjectedAttributes projectedColumn : projectedAttributesList) {
+                    newRow.addAll(projectedColumn.projectFromRow(rel, row));
                 }
                 result.insert(newRow);
             }
@@ -37,8 +37,8 @@ public final class ExtendedRAImpl implements ExtendedRA {
             // We can project a single empty row.
             List<Cell> row = List.of();
             List<Cell> newRow = new ArrayList<>();
-            for (ProjectedColumns projectedColumn : projectedColumns) {
-                newRow.addAll(projectedColumn.getValuesForRow(null, row));
+            for (ProjectedAttributes projectedColumn : projectedAttributesList) {
+                newRow.addAll(projectedColumn.projectFromRow(null, row));
             }
             result.insert(newRow);
         }

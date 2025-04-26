@@ -6,10 +6,23 @@ import uga.cs4370.mydb.Type;
 
 import java.util.List;
 
+/**
+ * Utilities for this project.
+ */
 public class Utils {
-    public static Relation copySchema(Relation r) {
-        List<String> attrNames = r.getAttrs();
-        List<Type> attrTypes = r.getTypes();
+    /**
+     * Creates a new {@link Relation} with the schema of {@code relation} and no rows.
+     *
+     * @param relation The {@link Relation} with the schema to copy.
+     * @return A copy of {@code relation}'s schema.
+     */
+    public static Relation copySchema(Relation relation) {
+        if (relation == null) {
+            throw new NullPointerException("relation is null");
+        }
+
+        List<String> attrNames = relation.getAttrs();
+        List<Type> attrTypes = relation.getTypes();
         return new RelationBuilder().attributeNames(attrNames).attributeTypes(attrTypes).build();
     }
 }

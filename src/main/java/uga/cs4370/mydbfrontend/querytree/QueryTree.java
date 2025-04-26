@@ -13,6 +13,9 @@ public class QueryTree implements QueryTreeNode {
     private final QueryTreeNode root;
 
     public QueryTree(QueryTreeNode root) {
+        if (root == null) {
+            throw new NullPointerException("root is null");
+        }
         this.root = root;
     }
 

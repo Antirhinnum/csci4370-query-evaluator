@@ -5,7 +5,7 @@ import uga.cs4370.mydb.RelationBuilder;
 import uga.cs4370.mydb.Type;
 import uga.cs4370.mydbfrontend.Nameable;
 import uga.cs4370.mydbfrontend.extendedra.ExtendedRA;
-import uga.cs4370.mydbfrontend.extendedra.ProjectedColumns;
+import uga.cs4370.mydbfrontend.extendedra.ProjectedAttributes;
 import uga.cs4370.mydbfrontend.querytree.QueryTreeNode;
 
 import java.util.ArrayList;
@@ -13,9 +13,9 @@ import java.util.List;
 
 public class ExtendedProjectNode implements QueryTreeNode {
     private final QueryTreeNode child;
-    private final List<ProjectedColumns> projectedColumns;
+    private final List<ProjectedAttributes> projectedColumns;
 
-    public ExtendedProjectNode(QueryTreeNode child, List<ProjectedColumns> projectedColumns) {
+    public ExtendedProjectNode(QueryTreeNode child, List<ProjectedAttributes> projectedColumns) {
         this.child = child;
         this.projectedColumns = projectedColumns;
     }
@@ -39,9 +39,9 @@ public class ExtendedProjectNode implements QueryTreeNode {
 
         List<String> attrNames = new ArrayList<>();
         List<Type> attrTypes = new ArrayList<>();
-        for (ProjectedColumns p : this.projectedColumns) {
-            attrNames.addAll(p.getColumnNames(childSchema));
-            attrTypes.addAll(p.getColumnTypes(childSchema));
+        for (ProjectedAttributes p : this.projectedColumns) {
+            attrNames.addAll(p.getAttrNames(childSchema));
+            attrTypes.addAll(p.getAttrTypes(childSchema));
         }
 
         return new RelationBuilder().attributeNames(attrNames).attributeTypes(attrTypes).build();

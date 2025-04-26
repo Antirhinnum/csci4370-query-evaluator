@@ -13,8 +13,14 @@ import java.util.List;
  */
 public abstract class ExpressionPredicate implements Predicate {
 
+    /**
+     * @return The {@link RowExpressionEvaluator} used to evaluate the {@link #getExpression() Expression} this holds.
+     */
     public abstract RowExpressionEvaluator getEvaluator();
 
+    /**
+     * @return The {@link Expression} that this evaluates.
+     */
     public abstract Expression getExpression();
 
     @Override

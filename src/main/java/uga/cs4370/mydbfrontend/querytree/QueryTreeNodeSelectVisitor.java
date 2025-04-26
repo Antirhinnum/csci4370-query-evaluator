@@ -7,15 +7,18 @@ import uga.cs4370.mydb.Predicate;
 import uga.cs4370.mydb.Relation;
 import uga.cs4370.mydbfrontend.SimpleQueryEvaluator;
 import uga.cs4370.mydbfrontend.expressionevaluation.RowExpressionEvaluatorImpl;
-import uga.cs4370.mydbfrontend.extendedra.ProjectedColumns;
+import uga.cs4370.mydbfrontend.extendedra.ProjectedAttributes;
 import uga.cs4370.mydbfrontend.querytree.nodes.*;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+/**
+ * Visits a {@link Select} and returns a {@link QueryTreeNode} that can be used to evaluate that {@link Select}.
+ */
 public class QueryTreeNodeSelectVisitor extends SelectVisitorAdapter<QueryTreeNode> {
-    private static <S> QueryTreeNode evaluateJoins(QueryTreeNode sourceNode, List<Join> joins, SimpleQueryEvaluator evaluator) {
+    private static QueryTreeNode evaluateJoins(QueryTreeNode sourceNode, List<Join> joins, SimpleQueryEvaluator evaluator) {
         FromItemVisitor<QueryTreeNode> fromItemVisitor = new QueryTreeNodeFromItemVisitor();
         for (Join join : joins) {
             QueryTreeNode addedNode = join.getRightItem().accept(fromItemVisitor, evaluator);
@@ -67,15 +70,15 @@ public class QueryTreeNodeSelectVisitor extends SelectVisitorAdapter<QueryTreeNo
 
         List<SelectItem<?>> selectItems = plainSelect.getSelectItems();
         if (selectItems != null) {
-            ExpressionVisitor<ProjectedColumns> expressionVisitor = new ProjectedColumnExpressionVisitor();
-            SelectItemVisitor<ProjectedColumns> selectItemVisitor = new SelectItemVisitor<>() {
+            ExpressionVisitor<ProjectedAttributes> expressionVisitor = new ProjectedColumnExpressionVisitor();
+            SelectItemVisitor<ProjectedAttributes> selectItemVisitor = new SelectItemVisitor<>() {
                 @Override
-                public <S2> ProjectedColumns visit(SelectItem<? extends Expression> selectItem, S2 context) {
+                public <S2> ProjectedAttributes visit(SelectItem<? extends Expression> selectItem, S2 context) {
                     return selectItem.getExpression().accept(expressionVisitor, selectItem);
                 }
             };
 
-            List<ProjectedColumns> projectedColumns = new ArrayList<>();
+            List<ProjectedAttributes> projectedColumns = new ArrayList<>();
             for (SelectItem<?> selectItem : selectItems) {
                 projectedColumns.add(selectItem.accept(selectItemVisitor, context));
             }
@@ -109,7 +112,7 @@ public class QueryTreeNodeSelectVisitor extends SelectVisitorAdapter<QueryTreeNo
                 return null;
             }
         }
-        return null;
+        return leftNode;
     }
 }
 
