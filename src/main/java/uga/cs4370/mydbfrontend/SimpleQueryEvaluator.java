@@ -34,22 +34,18 @@ public final class SimpleQueryEvaluator {
      * @return The results of the evaluated query, or null either if an error occurred or if the query contained an
      * unsupported operation.
      */
-    public Relation evaluate(final String query) {
-        try {
-            Statement parsedQuery = CCJSqlParserUtil.parse(query);
-            if (parsedQuery == null) {
-                throw new RuntimeException("Could not parse query: " + query);
-            }
-
-            QueryTree queryTree = parsedQuery.accept(this.visitor, this);
-            if (queryTree == null) {
-                throw new RuntimeException("Could not parse query: " + query);
-            }
-
-            return queryTree.evaluate(this.ra, this.knownRelations);
-        } catch (JSQLParserException e) {
-            return null;
+    public Relation evaluate(final String query) throws JSQLParserException {
+        if (query == null || query.isEmpty()) {
+            throw new IllegalArgumentException("query is null or empty");
         }
+
+        Statement parsedQuery = CCJSqlParserUtil.parse(query);
+        QueryTree queryTree = parsedQuery.accept(this.visitor, this);
+        if (queryTree == null) {
+            throw new RuntimeException("Could not parse query: " + query);
+        }
+
+        return queryTree.evaluate(this.ra, this.knownRelations);
     }
 
     /**
