@@ -9,9 +9,11 @@ import net.sf.jsqlparser.expression.operators.relational.*;
 import uga.cs4370.mydb.Cell;
 import uga.cs4370.mydb.Relation;
 import uga.cs4370.mydb.Type;
+import uga.cs4370.mydbfrontend.Utils;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.util.regex.Pattern;
 
 public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> implements ExpressionEvaluator {
     protected final Relation schema;
@@ -266,6 +268,29 @@ public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> impl
             result = left.compareTo(right) != 0;
         }
         return parseBooleanToCell(result);
+    }
+
+    @Override
+    public <S> Cell visit(LikeExpression likeExpression, S context) {
+        Cell checkCell = likeExpression.getLeftExpression().accept(this, context);
+        Cell patternCell = likeExpression.getRightExpression().accept(this, context);
+
+        if (checkCell.getType() != Type.STRING || patternCell.getType() != Type.STRING) {
+            throw new IllegalArgumentException("Cannot compare non-string values using LIKE");
+        }
+
+        Character escape = null;
+        if (likeExpression.getEscape() != null) {
+            Cell escapeCell = likeExpression.getEscape().accept(this, context);
+            if (escapeCell.getType() != Type.STRING) {
+                throw new IllegalArgumentException("ESCAPE must be a string");
+            }
+            escape = escapeCell.getAsString().charAt(0);
+        }
+
+        String regex = Utils.convertSqlPatternToRegex(patternCell.getAsString(), escape);
+        Pattern pattern = Pattern.compile(regex);
+        return parseBooleanToCell(pattern.matcher(checkCell.getAsString()).matches());
     }
 
     @Override
