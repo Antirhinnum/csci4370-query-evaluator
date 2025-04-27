@@ -5,17 +5,17 @@ import uga.cs4370.mydb.RelationBuilder;
 import uga.cs4370.mydb.Type;
 import uga.cs4370.mydbfrontend.Nameable;
 import uga.cs4370.mydbfrontend.extendedra.ExtendedRA;
-import uga.cs4370.mydbfrontend.querytree.QueryTreeNode;
+import uga.cs4370.mydbfrontend.querytree.RelationProducingQueryTreeNode;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class CartesianProductNode implements QueryTreeNode {
+public class CartesianProductNode implements RelationProducingQueryTreeNode {
 
-    private final QueryTreeNode leftChild;
-    private final QueryTreeNode rightChild;
+    private final RelationProducingQueryTreeNode leftChild;
+    private final RelationProducingQueryTreeNode rightChild;
 
-    public CartesianProductNode(QueryTreeNode leftChild, QueryTreeNode rightChild) {
+    public CartesianProductNode(RelationProducingQueryTreeNode leftChild, RelationProducingQueryTreeNode rightChild) {
         this.leftChild = leftChild;
         this.rightChild = rightChild;
     }

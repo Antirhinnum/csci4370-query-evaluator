@@ -11,7 +11,7 @@ public interface GroupedRelation extends Relation {
 
     /**
      * @return The indexes of all attributes in this {@link Relation} that are grouped. Grouped attributes can be safely
-     * selected in {@link ExtendedRA#extendedProject(Relation, List)} when aggregates are used.
+     * selected in {@link ExtendedRA#extendedProject(GroupedRelation, List)} when aggregates are used.
      */
     List<Integer> getGroupedAttributeIndexes();
 }

@@ -21,7 +21,7 @@ public class RowExpressionEvaluatorImpl extends ExpressionEvaluatorImpl implemen
     public <S> Cell visit(Column column, S context) {
 
         // How I wish `context instanceof List<Cell>` worked.
-        if (!(context instanceof List<?> row) || row.isEmpty() || !(row.get(0) instanceof Cell)) {
+        if (!(context instanceof List<?> row) || row.isEmpty()) {
             throw new IllegalArgumentException("Cannot evaluate column without row instance");
         }
 

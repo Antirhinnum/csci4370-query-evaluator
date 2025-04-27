@@ -3,14 +3,14 @@ package uga.cs4370.mydbfrontend.querytree.nodes;
 import uga.cs4370.mydb.Relation;
 import uga.cs4370.mydbfrontend.Nameable;
 import uga.cs4370.mydbfrontend.extendedra.ExtendedRA;
-import uga.cs4370.mydbfrontend.querytree.QueryTreeNode;
+import uga.cs4370.mydbfrontend.querytree.RelationProducingQueryTreeNode;
 
 import java.util.List;
 
-public class DistinctNode implements QueryTreeNode {
-    private final QueryTreeNode child;
+public class DistinctNode implements RelationProducingQueryTreeNode {
+    private final RelationProducingQueryTreeNode child;
 
-    public DistinctNode(QueryTreeNode child) {
+    public DistinctNode(RelationProducingQueryTreeNode child) {
         this.child = child;
     }
 

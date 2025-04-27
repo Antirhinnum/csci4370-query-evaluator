@@ -4,17 +4,17 @@ import uga.cs4370.mydb.RA;
 import uga.cs4370.mydb.Relation;
 import uga.cs4370.mydbfrontend.Nameable;
 import uga.cs4370.mydbfrontend.extendedra.ExtendedRA;
-import uga.cs4370.mydbfrontend.querytree.QueryTreeNode;
+import uga.cs4370.mydbfrontend.querytree.RelationProducingQueryTreeNode;
 import uga.cs4370.mydbimpl.RAImpl;
 
 import java.util.List;
 
-public class NaturalJoinNode implements QueryTreeNode {
+public class NaturalJoinNode implements RelationProducingQueryTreeNode {
 
-    private final QueryTreeNode leftChild;
-    private final QueryTreeNode rightChild;
+    private final RelationProducingQueryTreeNode leftChild;
+    private final RelationProducingQueryTreeNode rightChild;
 
-    public NaturalJoinNode(QueryTreeNode leftChild, QueryTreeNode rightChild) {
+    public NaturalJoinNode(RelationProducingQueryTreeNode leftChild, RelationProducingQueryTreeNode rightChild) {
         this.leftChild = leftChild;
         this.rightChild = rightChild;
     }

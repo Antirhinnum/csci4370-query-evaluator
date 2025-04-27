@@ -7,16 +7,9 @@ import uga.cs4370.mydb.Type;
 import java.util.List;
 
 /**
- * For use with {@link ExtendedRA#extendedProject(Relation, List)}. Allows creating columns in a {@link Relation} based on the {@link Relation Relation's} schema.
+ * For use with {@link ExtendedRA#extendedProject(GroupedRelation, List)}. Allows creating columns in a {@link Relation} based on the {@link Relation Relation's} schema.
  */
 public interface ProjectedAttributes {
-
-    /**
-     * @return Returns {@code true} if this {@link ProjectedAttributes} aggregates together rows in a {@link Relation}.
-     */
-    default boolean isAggregating() {
-        return false;
-    }
 
     /**
      * @param schema The schema of the {@link Relation} to project from.
@@ -31,9 +24,16 @@ public interface ProjectedAttributes {
     List<Type> getAttrTypes(Relation schema);
 
     /**
-     * @param relation The schema of the {@link Relation} to project from.
+     * @param relation The schema of the {@link GroupedRelation} to project from.
      * @param row      The row in a {@link Relation} to project values from.
      * @return A {@link List} of values that this {@link ProjectedAttributes} projects from {@code row}.
      */
-    List<Cell> projectFromRow(Relation relation, List<Cell> row);
+    List<Cell> projectFromRow(GroupedRelation relation, List<Cell> row);
+
+    /**
+     * @return Returns {@code true} if this {@link ProjectedAttributes} aggregates together rows in a {@link Relation}.
+     */
+    default boolean isAggregating() {
+        return false;
+    }
 }

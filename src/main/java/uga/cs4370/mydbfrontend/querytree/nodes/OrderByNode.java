@@ -4,15 +4,15 @@ import uga.cs4370.mydb.Relation;
 import uga.cs4370.mydbfrontend.Nameable;
 import uga.cs4370.mydbfrontend.extendedra.ExtendedRA;
 import uga.cs4370.mydbfrontend.extendedra.OrderByColumn;
-import uga.cs4370.mydbfrontend.querytree.QueryTreeNode;
+import uga.cs4370.mydbfrontend.querytree.RelationProducingQueryTreeNode;
 
 import java.util.List;
 
-public class OrderByNode implements QueryTreeNode {
-    private final QueryTreeNode child;
+public class OrderByNode implements RelationProducingQueryTreeNode {
+    private final RelationProducingQueryTreeNode child;
     private final List<OrderByColumn> orderings;
 
-    public OrderByNode(QueryTreeNode child, List<OrderByColumn> orderings) {
+    public OrderByNode(RelationProducingQueryTreeNode child, List<OrderByColumn> orderings) {
         this.child = child;
         this.orderings = orderings;
     }

@@ -4,15 +4,15 @@ import uga.cs4370.mydb.Predicate;
 import uga.cs4370.mydb.Relation;
 import uga.cs4370.mydbfrontend.Nameable;
 import uga.cs4370.mydbfrontend.extendedra.ExtendedRA;
-import uga.cs4370.mydbfrontend.querytree.QueryTreeNode;
+import uga.cs4370.mydbfrontend.querytree.RelationProducingQueryTreeNode;
 
 import java.util.List;
 
-public class SelectNode implements QueryTreeNode {
-    private final QueryTreeNode child;
+public class SelectNode implements RelationProducingQueryTreeNode {
+    private final RelationProducingQueryTreeNode child;
     private final Predicate predicate;
 
-    public SelectNode(QueryTreeNode child, Predicate predicate) {
+    public SelectNode(RelationProducingQueryTreeNode child, Predicate predicate) {
         this.child = child;
         this.predicate = predicate;
     }

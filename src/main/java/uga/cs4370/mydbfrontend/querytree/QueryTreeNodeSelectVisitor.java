@@ -8,6 +8,7 @@ import uga.cs4370.mydbfrontend.SimpleQueryEvaluator;
 import uga.cs4370.mydbfrontend.expressionevaluation.RowExpressionEvaluatorImpl;
 import uga.cs4370.mydbfrontend.extendedra.OrderByColumn;
 import uga.cs4370.mydbfrontend.extendedra.ProjectedAttributes;
+import uga.cs4370.mydbfrontend.extendedra.RowValueProducer;
 import uga.cs4370.mydbfrontend.querytree.nodes.*;
 
 import java.util.ArrayList;
@@ -15,13 +16,13 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * Visits a {@link Select} and returns a {@link QueryTreeNode} that can be used to evaluate that {@link Select}.
+ * Visits a {@link Select} and returns a {@link RelationProducingQueryTreeNode} that can be used to evaluate that {@link Select}.
  */
-public class QueryTreeNodeSelectVisitor extends SelectVisitorAdapter<QueryTreeNode> {
-    private static QueryTreeNode evaluateJoins(QueryTreeNode sourceNode, List<Join> joins, SimpleQueryEvaluator evaluator) {
-        FromItemVisitor<QueryTreeNode> fromItemVisitor = new QueryTreeNodeFromItemVisitor();
+public class QueryTreeNodeSelectVisitor extends SelectVisitorAdapter<RelationProducingQueryTreeNode> {
+    private static RelationProducingQueryTreeNode evaluateJoins(RelationProducingQueryTreeNode sourceNode, List<Join> joins, SimpleQueryEvaluator evaluator) {
+        FromItemVisitor<RelationProducingQueryTreeNode> fromItemVisitor = new QueryTreeNodeFromItemVisitor();
         for (Join join : joins) {
-            QueryTreeNode addedNode = join.getRightItem().accept(fromItemVisitor, evaluator);
+            RelationProducingQueryTreeNode addedNode = join.getRightItem().accept(fromItemVisitor, evaluator);
             if (join.isSimple() || join.isCross()) {
                 sourceNode = new CartesianProductNode(sourceNode, addedNode);
             } else if (join.isInner()) {
@@ -43,16 +44,16 @@ public class QueryTreeNodeSelectVisitor extends SelectVisitorAdapter<QueryTreeNo
     }
 
     @Override
-    public <S> QueryTreeNode visit(PlainSelect plainSelect, S context) {
+    public <S> RelationProducingQueryTreeNode visit(PlainSelect plainSelect, S context) {
 
         if (!(context instanceof SimpleQueryEvaluator evaluator)) {
             throw new IllegalArgumentException("context must be a SimpleQueryEvaluator");
         }
 
-        QueryTreeNode sourceNode = null;
+        RelationProducingQueryTreeNode sourceNode = null;
         FromItem fromItem = plainSelect.getFromItem();
         if (fromItem != null) {
-            FromItemVisitor<QueryTreeNode> fromItemVisitor = new QueryTreeNodeFromItemVisitor();
+            FromItemVisitor<RelationProducingQueryTreeNode> fromItemVisitor = new QueryTreeNodeFromItemVisitor();
             sourceNode = fromItem.accept(fromItemVisitor, context);
             List<Join> joins = plainSelect.getJoins();
             if (joins != null) {
@@ -68,6 +69,18 @@ public class QueryTreeNodeSelectVisitor extends SelectVisitorAdapter<QueryTreeNo
             sourceNode = new SelectNode(sourceNode, predicate);
         }
 
+        GroupsProducingQueryTreeNode groupsNode;
+        GroupByElement groupByElement = plainSelect.getGroupBy();
+        if (groupByElement != null) {
+            RowValueProducerExpressionVisitor expressionVisitor = new RowValueProducerExpressionVisitor();
+            List<RowValueProducer> groupingValueProducers = groupByElement.accept(expressionVisitor, context);
+            groupsNode = new GroupByNode(sourceNode, groupingValueProducers);
+
+            // TODO: HAVING
+        } else {
+            groupsNode = new GroupsProducingQueryTreeNodeAdapter(sourceNode);
+        }
+
         List<SelectItem<?>> selectItems = plainSelect.getSelectItems();
         if (selectItems != null) {
             ProjectedColumnExpressionVisitor expressionVisitor = new ProjectedColumnExpressionVisitor();
@@ -75,7 +88,7 @@ public class QueryTreeNodeSelectVisitor extends SelectVisitorAdapter<QueryTreeNo
             for (SelectItem<?> selectItem : selectItems) {
                 projectedColumns.add(selectItem.accept(expressionVisitor, selectItem));
             }
-            sourceNode = new ExtendedProjectNode(sourceNode, projectedColumns);
+            sourceNode = new ExtendedProjectNode(groupsNode, projectedColumns);
         }
 
         Distinct distinct = plainSelect.getDistinct();
@@ -109,7 +122,7 @@ public class QueryTreeNodeSelectVisitor extends SelectVisitorAdapter<QueryTreeNo
     }
 
     @Override
-    public <S> QueryTreeNode visit(SetOperationList setOpList, S context) {
+    public <S> RelationProducingQueryTreeNode visit(SetOperationList setOpList, S context) {
 
         // Evaluate set operations left-to-right.
         List<Select> selects = setOpList.getSelects();
@@ -118,9 +131,9 @@ public class QueryTreeNodeSelectVisitor extends SelectVisitorAdapter<QueryTreeNo
         }
 
         List<SetOperation> setOps = setOpList.getOperations();
-        QueryTreeNode leftNode = selects.get(0).accept(this, context);
+        RelationProducingQueryTreeNode leftNode = selects.get(0).accept(this, context);
         for (int i = 1; i < selects.size(); i++) {
-            QueryTreeNode rightNode = selects.get(i).accept(this, context);
+            RelationProducingQueryTreeNode rightNode = selects.get(i).accept(this, context);
             SetOperation operation = setOps.get(i - 1);
 
             if (operation instanceof UnionOp) {

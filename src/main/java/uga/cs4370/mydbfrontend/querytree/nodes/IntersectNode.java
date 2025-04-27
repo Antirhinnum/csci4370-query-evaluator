@@ -3,15 +3,15 @@ package uga.cs4370.mydbfrontend.querytree.nodes;
 import uga.cs4370.mydb.Relation;
 import uga.cs4370.mydbfrontend.Nameable;
 import uga.cs4370.mydbfrontend.extendedra.ExtendedRA;
-import uga.cs4370.mydbfrontend.querytree.QueryTreeNode;
+import uga.cs4370.mydbfrontend.querytree.RelationProducingQueryTreeNode;
 
 import java.util.List;
 
-public class IntersectNode implements QueryTreeNode {
-    private final QueryTreeNode leftChild;
-    private final QueryTreeNode rightChild;
+public class IntersectNode implements RelationProducingQueryTreeNode {
+    private final RelationProducingQueryTreeNode leftChild;
+    private final RelationProducingQueryTreeNode rightChild;
 
-    public IntersectNode(QueryTreeNode leftChild, QueryTreeNode rightChild) {
+    public IntersectNode(RelationProducingQueryTreeNode leftChild, RelationProducingQueryTreeNode rightChild) {
         this.leftChild = leftChild;
         this.rightChild = rightChild;
     }

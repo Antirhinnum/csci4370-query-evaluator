@@ -15,11 +15,11 @@ public interface ExtendedRA extends RA {
      * this method allows selecting arbitrary data based on the input relation. This includes attributes, the all columns
      * expression ({@code *}), algebraic expressions, constant values, etc.
      *
-     * @param rel                     The {@link Relation} to project from, or null. If null, a relation with one row will be produced.
+     * @param rel                     The {@link GroupedRelation} to project from, or null. If null, a relation with one row will be produced.
      * @param projectedAttributesList The set of {@link ProjectedAttributes} to project.
      * @return A new {@link Relation} with all projected attributes.
      */
-    Relation extendedProject(Relation rel, List<ProjectedAttributes> projectedAttributesList);
+    Relation extendedProject(GroupedRelation rel, List<ProjectedAttributes> projectedAttributesList);
 
     /**
      * Limits the number of rows in a {@link Relation}.

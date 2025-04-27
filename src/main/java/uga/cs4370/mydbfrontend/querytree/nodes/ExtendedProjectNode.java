@@ -5,28 +5,37 @@ import uga.cs4370.mydb.RelationBuilder;
 import uga.cs4370.mydb.Type;
 import uga.cs4370.mydbfrontend.Nameable;
 import uga.cs4370.mydbfrontend.extendedra.ExtendedRA;
+import uga.cs4370.mydbfrontend.extendedra.GroupedRelation;
 import uga.cs4370.mydbfrontend.extendedra.ProjectedAttributes;
-import uga.cs4370.mydbfrontend.querytree.QueryTreeNode;
+import uga.cs4370.mydbfrontend.querytree.GroupsProducingQueryTreeNode;
+import uga.cs4370.mydbfrontend.querytree.RelationProducingQueryTreeNode;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class ExtendedProjectNode implements QueryTreeNode {
-    private final QueryTreeNode child;
+public class ExtendedProjectNode implements RelationProducingQueryTreeNode {
+    private final GroupsProducingQueryTreeNode child;
     private final List<ProjectedAttributes> projectedColumns;
 
-    public ExtendedProjectNode(QueryTreeNode child, List<ProjectedAttributes> projectedColumns) {
+    public ExtendedProjectNode(GroupsProducingQueryTreeNode child, List<ProjectedAttributes> projectedColumns) {
         this.child = child;
         this.projectedColumns = projectedColumns;
     }
 
     @Override
     public Relation evaluate(ExtendedRA ra, List<Nameable<Relation>> knownRelations) {
-        Relation result = null;
+        List<GroupedRelation> input = new ArrayList<>();
         if (this.child != null) {
-            result = this.child.evaluate(ra, knownRelations);
+            input.addAll(this.child.evaluateGroups(ra, knownRelations));
         }
-        return ra.extendedProject(result, this.projectedColumns);
+        Relation result = getRelationSchema(knownRelations);
+        for (GroupedRelation group : input) {
+            Relation projection = ra.extendedProject(group, this.projectedColumns);
+            for (int i = 0; i < projection.getSize(); i++) {
+                result.insert(projection.getRow(i));
+            }
+        }
+        return result;
     }
 
     @Override

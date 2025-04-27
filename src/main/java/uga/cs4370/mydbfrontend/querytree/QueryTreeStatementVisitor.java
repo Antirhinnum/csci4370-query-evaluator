@@ -8,7 +8,7 @@ import net.sf.jsqlparser.statement.select.SelectVisitor;
  * Visits a {@link Select} and returns a {@link QueryTree}. Will return {@code null} for any other kind of {@link net.sf.jsqlparser.statement.Statement}.
  */
 public class QueryTreeStatementVisitor extends StatementVisitorAdapter<QueryTree> {
-    private final SelectVisitor<QueryTreeNode> selectVisitor = new QueryTreeNodeSelectVisitor();
+    private final SelectVisitor<RelationProducingQueryTreeNode> selectVisitor = new QueryTreeNodeSelectVisitor();
 
     @Override
     public <S> QueryTree visit(Select select, S context) {

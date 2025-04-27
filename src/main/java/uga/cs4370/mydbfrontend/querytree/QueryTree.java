@@ -9,10 +9,10 @@ import java.util.List;
 /**
  * A tree that contains all workable information about an SQL query.
  */
-public class QueryTree implements QueryTreeNode {
-    private final QueryTreeNode root;
+public class QueryTree implements RelationProducingQueryTreeNode {
+    private final RelationProducingQueryTreeNode root;
 
-    public QueryTree(QueryTreeNode root) {
+    public QueryTree(RelationProducingQueryTreeNode root) {
         if (root == null) {
             throw new NullPointerException("root is null");
         }

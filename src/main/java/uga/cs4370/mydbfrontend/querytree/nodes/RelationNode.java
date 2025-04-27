@@ -5,12 +5,12 @@ import uga.cs4370.mydbfrontend.Nameable;
 import uga.cs4370.mydbfrontend.Utils;
 import uga.cs4370.mydbfrontend.extendedra.ExtendedRA;
 import uga.cs4370.mydbfrontend.extendedra.ExtendedRAImpl;
-import uga.cs4370.mydbfrontend.querytree.QueryTreeNode;
+import uga.cs4370.mydbfrontend.querytree.RelationProducingQueryTreeNode;
 import uga.cs4370.mydbimpl.RAImpl;
 
 import java.util.List;
 
-public class RelationNode implements QueryTreeNode {
+public class RelationNode implements RelationProducingQueryTreeNode {
 
     private final String name;
     private final String alias;

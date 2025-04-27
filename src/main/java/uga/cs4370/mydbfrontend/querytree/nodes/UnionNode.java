@@ -3,16 +3,16 @@ package uga.cs4370.mydbfrontend.querytree.nodes;
 import uga.cs4370.mydb.Relation;
 import uga.cs4370.mydbfrontend.Nameable;
 import uga.cs4370.mydbfrontend.extendedra.ExtendedRA;
-import uga.cs4370.mydbfrontend.querytree.QueryTreeNode;
+import uga.cs4370.mydbfrontend.querytree.RelationProducingQueryTreeNode;
 
 import java.util.List;
 
-public class UnionNode implements QueryTreeNode {
+public class UnionNode implements RelationProducingQueryTreeNode {
 
-    private final QueryTreeNode leftChild;
-    private final QueryTreeNode rightChild;
+    private final RelationProducingQueryTreeNode leftChild;
+    private final RelationProducingQueryTreeNode rightChild;
 
-    public UnionNode(QueryTreeNode left, QueryTreeNode right) {
+    public UnionNode(RelationProducingQueryTreeNode left, RelationProducingQueryTreeNode right) {
         this.leftChild = left;
         this.rightChild = right;
     }

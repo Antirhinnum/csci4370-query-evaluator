@@ -13,7 +13,7 @@ public final class ExtendedRAImpl implements ExtendedRA {
     }
 
     @Override
-    public Relation extendedProject(Relation rel, List<ProjectedAttributes> projectedAttributesList) {
+    public Relation extendedProject(GroupedRelation rel, List<ProjectedAttributes> projectedAttributesList) {
 
         List<String> attrNames = new ArrayList<>();
         List<Type> attrTypes = new ArrayList<>();
@@ -23,8 +23,124 @@ public final class ExtendedRAImpl implements ExtendedRA {
         }
 
         Relation result = new RelationBuilder().attributeNames(attrNames).attributeTypes(attrTypes).build();
+        if (rel == null || rel.getSize() == 0) {
+            // We can project a single empty row.
+            List<Cell> row = List.of();
+            List<Cell> newRow = new ArrayList<>();
+            for (ProjectedAttributes projectedColumn : projectedAttributesList) {
+                newRow.addAll(projectedColumn.projectFromRow(rel, row));
+            }
+            result.insert(newRow);
+        } else {
 
-        if (rel != null) {
+            // If there are any groups or aggregating functions, ensure that no ProjectedAttributes are trying to project
+            // attributes that won't be constant across every row in the group.
+            boolean anyAggregatingProjections = projectedAttributesList.stream().anyMatch(ProjectedAttributes::isAggregating);
+            if (anyAggregatingProjections || !rel.getGroupedAttributeIndexes().isEmpty()) {
+                Set<Integer> safeColumnIndexesToGroup = new HashSet<>(rel.getGroupedAttributeIndexes());
+
+                // We don't know which columns are being aggregated, so figure that out.
+                // Make a relation that returns a tracer row.
+                final int[] lastRowGotten = {-1};
+                GroupedRelation tracerRelation = new GroupedRelation() {
+                    @Override
+                    public List<Integer> getGroupedAttributeIndexes() {
+                        return rel.getGroupedAttributeIndexes();
+                    }
+
+                    @Override
+                    public int getSize() {
+                        return rel.getSize();
+                    }
+
+                    @Override
+                    public List<Cell> getRow(int i) {
+                        List<Cell> row = rel.getRow(i);
+                        return new ArrayList<>(row) {
+                            @Override
+                            public Cell get(int index) {
+                                lastRowGotten[0] = index;
+                                return super.get(index);
+                            }
+                        };
+                    }
+
+                    @Override
+                    public List<Type> getTypes() {
+                        return rel.getTypes();
+                    }
+
+                    @Override
+                    public List<String> getAttrs() {
+                        return rel.getAttrs();
+                    }
+
+                    @Override
+                    public boolean hasAttr(String attr) {
+                        return rel.hasAttr(attr);
+                    }
+
+                    @Override
+                    public int getAttrIndex(String attr) {
+                        return rel.getAttrIndex(attr);
+                    }
+
+                    @Override
+                    public void insert(List<Cell> row) {
+                        rel.insert(row);
+                    }
+
+                    @Override
+                    public void loadData(String path) {
+                        rel.loadData(path);
+                    }
+
+                    @Override
+                    public void print() {
+                        rel.print();
+                    }
+                };
+
+                for (ProjectedAttributes projectedColumn : projectedAttributesList) {
+                    if (projectedColumn.isAggregating()) {
+                        // Presumably, projectFromRow() will need to call get() on at least one row in order to get the
+                        // value it needs to aggregate. Trace which index is used.
+                        projectedColumn.projectFromRow(tracerRelation, tracerRelation.getRow(0));
+                        if (lastRowGotten[0] != -1) {
+                            safeColumnIndexesToGroup.add(lastRowGotten[0]);
+                            lastRowGotten[0] = -1;
+                        }
+                    }
+                }
+
+                // We now know all the columns we can safely include in an aggregate query. Now let's try and catch
+                // any projections that use unsafe columns.
+                List<Cell> evilRow = new ArrayList<>();
+                for (int i = 0; i < rel.getTypes().size(); i++) {
+                    if (safeColumnIndexesToGroup.contains(i)) {
+                        evilRow.add(switch (rel.getTypes().get(i)) {
+                            case STRING -> Cell.val("");
+                            case INTEGER -> Cell.val(0);
+                            case DOUBLE -> Cell.val(0.0);
+                        });
+                    } else {
+                        evilRow.add(null);
+                    }
+                }
+
+                int k = 0;
+                try {
+                    for (k = 0; k < projectedAttributesList.size(); k++) {
+                        List<Cell> projected = projectedAttributesList.get(k).projectFromRow(rel, evilRow);
+                        if (projected.stream().anyMatch(Objects::isNull)) {
+                            throw new NullPointerException();
+                        }
+                    }
+                } catch (NullPointerException e) {
+                    throw new RuntimeException("The ProjectedAttributes with index " + k + " tried to project a column that wasn't safe to project with an aggregate or group!");
+                }
+            }
+
             for (int i = 0; i < rel.getSize(); i++) {
                 List<Cell> row = rel.getRow(i);
                 List<Cell> newRow = new ArrayList<>();
@@ -32,15 +148,11 @@ public final class ExtendedRAImpl implements ExtendedRA {
                     newRow.addAll(projectedColumn.projectFromRow(rel, row));
                 }
                 result.insert(newRow);
+
+                if (anyAggregatingProjections) {
+                    break;
+                }
             }
-        } else {
-            // We can project a single empty row.
-            List<Cell> row = List.of();
-            List<Cell> newRow = new ArrayList<>();
-            for (ProjectedAttributes projectedColumn : projectedAttributesList) {
-                newRow.addAll(projectedColumn.projectFromRow(null, row));
-            }
-            result.insert(newRow);
         }
 
         return result;

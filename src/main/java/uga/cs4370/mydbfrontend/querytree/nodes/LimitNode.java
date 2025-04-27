@@ -8,16 +8,16 @@ import uga.cs4370.mydbfrontend.Nameable;
 import uga.cs4370.mydbfrontend.expressionevaluation.ExpressionEvaluator;
 import uga.cs4370.mydbfrontend.expressionevaluation.ExpressionEvaluatorImpl;
 import uga.cs4370.mydbfrontend.extendedra.ExtendedRA;
-import uga.cs4370.mydbfrontend.querytree.QueryTreeNode;
+import uga.cs4370.mydbfrontend.querytree.RelationProducingQueryTreeNode;
 
 import java.util.List;
 
-public class LimitNode implements QueryTreeNode {
-    private final QueryTreeNode child;
+public class LimitNode implements RelationProducingQueryTreeNode {
+    private final RelationProducingQueryTreeNode child;
     private final Expression limitExpression;
     private final Expression offsetExpression;
 
-    public LimitNode(QueryTreeNode child, Expression limitExpression, Expression offsetExpression) {
+    public LimitNode(RelationProducingQueryTreeNode child, Expression limitExpression, Expression offsetExpression) {
         this.child = child;
         this.limitExpression = limitExpression;
         this.offsetExpression = offsetExpression;

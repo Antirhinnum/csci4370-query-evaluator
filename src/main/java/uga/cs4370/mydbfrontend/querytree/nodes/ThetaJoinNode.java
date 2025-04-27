@@ -6,18 +6,18 @@ import uga.cs4370.mydb.RelationBuilder;
 import uga.cs4370.mydb.Type;
 import uga.cs4370.mydbfrontend.Nameable;
 import uga.cs4370.mydbfrontend.extendedra.ExtendedRA;
-import uga.cs4370.mydbfrontend.querytree.QueryTreeNode;
+import uga.cs4370.mydbfrontend.querytree.RelationProducingQueryTreeNode;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class ThetaJoinNode implements QueryTreeNode {
+public class ThetaJoinNode implements RelationProducingQueryTreeNode {
 
-    private final QueryTreeNode leftChild;
-    private final QueryTreeNode rightChild;
+    private final RelationProducingQueryTreeNode leftChild;
+    private final RelationProducingQueryTreeNode rightChild;
     private final Predicate predicate;
 
-    public ThetaJoinNode(QueryTreeNode leftChild, QueryTreeNode rightChild, Predicate predicate) {
+    public ThetaJoinNode(RelationProducingQueryTreeNode leftChild, RelationProducingQueryTreeNode rightChild, Predicate predicate) {
         this.leftChild = leftChild;
         this.rightChild = rightChild;
         this.predicate = predicate;

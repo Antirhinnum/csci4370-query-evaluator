@@ -15,6 +15,7 @@ import uga.cs4370.mydbfrontend.expressionevaluation.ExpressionTypesEvaluator;
 import uga.cs4370.mydbfrontend.expressionevaluation.ExpressionTypesEvaluatorImpl;
 import uga.cs4370.mydbfrontend.expressionevaluation.RowExpressionEvaluator;
 import uga.cs4370.mydbfrontend.expressionevaluation.RowExpressionEvaluatorImpl;
+import uga.cs4370.mydbfrontend.extendedra.GroupedRelation;
 import uga.cs4370.mydbfrontend.extendedra.ProjectedAttributes;
 import uga.cs4370.mydbfrontend.extendedra.RowValueProducer;
 
@@ -64,7 +65,7 @@ public class ProjectedColumnExpressionVisitor extends ExpressionVisitorAdapter<P
             }
 
             @Override
-            public List<Cell> projectFromRow(Relation relation, List<Cell> row) {
+            public List<Cell> projectFromRow(GroupedRelation relation, List<Cell> row) {
                 RowValueProducerExpressionVisitor producerVisitor = new RowValueProducerExpressionVisitor();
                 RowValueProducer producer = function.getParameters().get(0).accept(producerVisitor, null);
                 return List.of(aggregatingFunction.apply(relation, producer));
@@ -95,7 +96,7 @@ public class ProjectedColumnExpressionVisitor extends ExpressionVisitorAdapter<P
             }
 
             @Override
-            public List<Cell> projectFromRow(Relation relation, List<Cell> row) {
+            public List<Cell> projectFromRow(GroupedRelation relation, List<Cell> row) {
                 RowExpressionEvaluator evaluator = new RowExpressionEvaluatorImpl(relation);
                 Cell evaluated = evaluator.evaluate(selectItem.getExpression(), row);
                 return List.of(evaluated);
@@ -128,7 +129,7 @@ public class ProjectedColumnExpressionVisitor extends ExpressionVisitorAdapter<P
             }
 
             @Override
-            public List<Cell> projectFromRow(Relation relation, List<Cell> row) {
+            public List<Cell> projectFromRow(GroupedRelation relation, List<Cell> row) {
                 return row;
             }
         };
@@ -184,7 +185,7 @@ public class ProjectedColumnExpressionVisitor extends ExpressionVisitorAdapter<P
                 for (int i = 0; i < relation.getSize(); i++) {
                     List<Cell> row = relation.getRow(i);
                     Cell value = producer.getValueFromRow(relation, row);
-                    if (!knownValues.add(value)) {
+                    if (knownValues.add(value)) {
                         uniqueValues++;
                     }
                 }
