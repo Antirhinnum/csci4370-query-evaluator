@@ -20,6 +20,8 @@ public class Driver {
     private static final String DATA_SECTION = Path.of(DATA_HEAD, "section_export.csv").toString();
     private static final String DATA_TEACHES = Path.of(DATA_HEAD, "teaches_export.csv").toString();
 
+    public static final boolean DEBUG = false;
+
     public static void main(String[] args) {
 
         ExtendedRA ra = new ExtendedRAImpl(new RAImpl());
@@ -53,6 +55,10 @@ public class Driver {
                 result = qe.evaluate(command);
             } catch (Exception e) {
                 System.out.println("Error: " + e.getMessage());
+                if (DEBUG) {
+                    System.out.println("Full error: " + e);
+                    e.printStackTrace();
+                }
                 continue;
             }
 

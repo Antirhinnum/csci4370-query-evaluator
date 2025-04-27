@@ -9,6 +9,7 @@ import net.sf.jsqlparser.expression.operators.relational.*;
 import uga.cs4370.mydb.Cell;
 import uga.cs4370.mydb.Relation;
 import uga.cs4370.mydb.Type;
+import uga.cs4370.mydbfrontend.Driver;
 import uga.cs4370.mydbfrontend.Utils;
 
 import java.math.BigDecimal;
@@ -29,7 +30,7 @@ public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> impl
     }
 
     public static boolean parseCellToBoolean(Cell c) {
-        if (c == null) return false;
+        if (c == null) throw new NullPointerException("Cannot parse null to boolean, this may be a result of an unimplemented operation");
         if (c.getType() != Type.INTEGER) return false;
         return c.getAsInt() != 0;
     }
@@ -152,14 +153,22 @@ public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> impl
     public <S> Cell visit(AndExpression andExpression, S context) {
         Cell leftCell = andExpression.getLeftExpression().accept(this, context);
         Cell rightCell = andExpression.getRightExpression().accept(this, context);
-        return parseBooleanToCell(parseCellToBoolean(leftCell) && parseCellToBoolean(rightCell));
+        if (Driver.DEBUG) {
+            return parseBooleanToCell(parseCellToBoolean(leftCell) & parseCellToBoolean(rightCell));
+        } else {
+            return parseBooleanToCell(parseCellToBoolean(leftCell) && parseCellToBoolean(rightCell));
+        }
     }
 
     @Override
     public <S> Cell visit(OrExpression orExpression, S context) {
         Cell leftCell = orExpression.getLeftExpression().accept(this, context);
         Cell rightCell = orExpression.getRightExpression().accept(this, context);
-        return parseBooleanToCell(parseCellToBoolean(leftCell) || parseCellToBoolean(rightCell));
+        if (Driver.DEBUG) {
+            return parseBooleanToCell(parseCellToBoolean(leftCell) | parseCellToBoolean(rightCell));
+        } else {
+            return parseBooleanToCell(parseCellToBoolean(leftCell) || parseCellToBoolean(rightCell));
+        }
     }
 
     @Override
