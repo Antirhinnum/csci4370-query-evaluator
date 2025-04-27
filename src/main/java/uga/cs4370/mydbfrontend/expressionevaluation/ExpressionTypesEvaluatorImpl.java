@@ -7,11 +7,9 @@ import net.sf.jsqlparser.expression.operators.conditional.OrExpression;
 import net.sf.jsqlparser.expression.operators.conditional.XorExpression;
 import net.sf.jsqlparser.expression.operators.relational.*;
 import net.sf.jsqlparser.schema.Column;
-import uga.cs4370.mydb.Cell;
 import uga.cs4370.mydb.Relation;
 import uga.cs4370.mydb.Type;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 public class ExpressionTypesEvaluatorImpl extends ExpressionVisitorAdapter<Type> implements ExpressionTypesEvaluator {
@@ -19,15 +17,6 @@ public class ExpressionTypesEvaluatorImpl extends ExpressionVisitorAdapter<Type>
 
     public ExpressionTypesEvaluatorImpl(Relation schema) {
         this.schema = schema;
-    }
-
-    public static BigDecimal parseCellToNumeric(Cell c) {
-        if (c == null) throw new NullPointerException("Cell was null");
-        if (c.getType() == Type.STRING) return null;
-
-        if (c.getType() == Type.DOUBLE) return BigDecimal.valueOf(c.getAsDouble());
-        else if (c.getType() == Type.INTEGER) return BigDecimal.valueOf(c.getAsInt());
-        else throw new UnsupportedOperationException("Cannot convert Cell to a numeric type");
     }
 
     @Override
@@ -194,6 +183,17 @@ public class ExpressionTypesEvaluatorImpl extends ExpressionVisitorAdapter<Type>
         }
 
         throw new RuntimeException("Failed to evaluate column '" + columnName + "'");
+    }
+
+    @Override
+    public <S> Type visit(Function function, S context) {
+        return switch (function.getName().trim().toLowerCase()) {
+            case "concat", "substring", "trim" -> Type.STRING;
+            case "length", "count" -> Type.INTEGER;
+            case "avg" -> Type.DOUBLE;
+            case "min", "max", "sum" -> function.getParameters().get(0).accept(this, context);
+            default -> throw new UnsupportedOperationException("Unsupported function: " + function.getName());
+        };
     }
 
     @Override

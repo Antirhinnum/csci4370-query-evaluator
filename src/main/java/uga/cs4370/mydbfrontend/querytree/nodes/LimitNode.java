@@ -30,13 +30,12 @@ public class LimitNode implements QueryTreeNode {
         if (cell.getType() == Type.STRING) {
             throw new IllegalArgumentException("Cannot coerce a string to an integer");
         }
+        if (cell.getType() == Type.DOUBLE) {
+            throw new IllegalArgumentException("Cannot coerce a double to an integer");
+        }
 
         if (cell.getType() == Type.INTEGER) {
             return cell.getAsInt();
-        }
-
-        if (cell.getType() == Type.DOUBLE) {
-            return (int) cell.getAsDouble();
         }
 
         throw new UnsupportedOperationException("Don't know how to coerce a cell of type " + cell.getType() + " into an integer");
@@ -55,7 +54,7 @@ public class LimitNode implements QueryTreeNode {
             Cell offsetValue = evaluator.evaluate(this.offsetExpression);
             offset = coerceCellToInt(offsetValue);
         }
-        
+
         return ra.limit(rel, limit, offset);
     }
 

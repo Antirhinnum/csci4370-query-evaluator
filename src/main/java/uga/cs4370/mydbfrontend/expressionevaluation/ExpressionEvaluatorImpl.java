@@ -13,7 +13,9 @@ import uga.cs4370.mydbfrontend.Utils;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.util.List;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> implements ExpressionEvaluator {
     protected final Relation schema;
@@ -48,7 +50,12 @@ public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> impl
 
     @Override
     public <S> Cell visit(LongValue longValue, S context) {
-        return Cell.val(longValue.getValue());
+        return Cell.val((int) longValue.getValue());
+    }
+
+    @Override
+    public <S> Cell visit(HexValue hexValue, S context) {
+        return hexValue.getLongValue().accept(this, context);
     }
 
     @Override
@@ -291,6 +298,58 @@ public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> impl
         String regex = Utils.convertSqlPatternToRegex(patternCell.getAsString(), escape);
         Pattern pattern = Pattern.compile(regex);
         return parseBooleanToCell(pattern.matcher(checkCell.getAsString()).matches());
+    }
+
+    @Override
+    public <S> Cell visit(Function function, S context) {
+        ExpressionList<?> parameters = function.getParameters();
+        List<Cell> evaluatedParameters = parameters.stream().map(cell -> cell.accept(this, context)).toList();
+        return switch (function.getName()) {
+            case "concat" -> {
+                List<String> strings = evaluatedParameters.stream().map(Cell::toString).toList();
+                yield Cell.val(String.join("", strings));
+            }
+            case "substring" -> {
+                if (evaluatedParameters.size() != 3) {
+                    throw new IllegalArgumentException("Substring expects exactly three parameters");
+                }
+                if (evaluatedParameters.get(0).getType() != Type.STRING || evaluatedParameters.get(1).getType() != Type.INTEGER || evaluatedParameters.get(2).getType() != Type.INTEGER) {
+                    throw new IllegalArgumentException("Substring expects the parameters (String, int, int), got (" + evaluatedParameters.stream().map(cell -> cell.getType().toString()).collect(Collectors.joining(", ")) + ")");
+                }
+                String toSubstring = evaluatedParameters.get(0).getAsString();
+                int start = evaluatedParameters.get(1).getAsInt();
+                int length = evaluatedParameters.get(2).getAsInt();
+                if (start < 1) {
+                    throw new IllegalArgumentException("Cannot substring before first character of string");
+                }
+                if (length < 0) {
+                    throw new IllegalArgumentException("Length must be non-negative");
+                }
+                // SQL substring uses one-based indexing, Java uses zero-based indexing
+                yield Cell.val(toSubstring.substring(start - 1, Math.min(start + length - 1, toSubstring.length())));
+            }
+            case "length" -> {
+                if (evaluatedParameters.size() != 1) {
+                    throw new IllegalArgumentException("Length expects exactly one parameter");
+                }
+                Cell argument = evaluatedParameters.get(0);
+                if (argument.getType() != Type.STRING) {
+                    throw new IllegalArgumentException("Length expects a string");
+                }
+                yield Cell.val(argument.getAsString().length());
+            }
+            case "trim" -> {
+                if (evaluatedParameters.size() != 1) {
+                    throw new IllegalArgumentException("Length expects exactly one parameter");
+                }
+                Cell argument = evaluatedParameters.get(0);
+                if (argument.getType() != Type.STRING) {
+                    throw new IllegalArgumentException("Length expects a string");
+                }
+                yield Cell.val(argument.getAsString().trim());
+            }
+            default -> throw new UnsupportedOperationException("Unknown function: " + function.getName());
+        };
     }
 
     @Override

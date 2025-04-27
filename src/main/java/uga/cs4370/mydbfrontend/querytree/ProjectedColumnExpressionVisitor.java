@@ -15,6 +15,7 @@ import uga.cs4370.mydbfrontend.expressionevaluation.RowExpressionEvaluator;
 import uga.cs4370.mydbfrontend.expressionevaluation.RowExpressionEvaluatorImpl;
 import uga.cs4370.mydbfrontend.extendedra.ProjectedAttributes;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -59,7 +60,7 @@ public class ProjectedColumnExpressionVisitor extends ExpressionVisitorAdapter<P
     }
 
     @Override
-    protected <S> ProjectedAttributes visitExpressions(Expression expression, S context, ExpressionList<? extends Expression> subExpressions) {
+    protected <S> ProjectedAttributes visitExpressions(Expression expression, S context, Collection<Expression> subExpressions) {
         return this.visitExpression(expression, context);
     }
 
