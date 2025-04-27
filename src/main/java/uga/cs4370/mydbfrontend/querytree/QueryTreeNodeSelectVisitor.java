@@ -127,6 +127,8 @@ public class QueryTreeNodeSelectVisitor extends SelectVisitorAdapter<QueryTreeNo
                 leftNode = new UnionNode(leftNode, rightNode);
             } else if (operation instanceof MinusOp || operation instanceof ExceptOp) {
                 leftNode = new ExceptNode(leftNode, rightNode);
+            } else if (operation instanceof IntersectOp) {
+                leftNode = new IntersectNode(leftNode, rightNode);
             } else {
                 // Unsupported operation
                 throw new UnsupportedOperationException("Cannot handle operation " + operation);

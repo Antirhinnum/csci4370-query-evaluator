@@ -128,6 +128,29 @@ public final class ExtendedRAImpl implements ExtendedRA {
     }
 
     @Override
+    public Relation intersect(Relation rel1, Relation rel2) {
+        if (!rel1.getAttrs().equals(rel2.getAttrs())) {
+            throw new IllegalArgumentException("Relations must have the same attributes for union.");
+        }
+        if (!rel1.getTypes().equals(rel2.getTypes())) {
+            throw new IllegalArgumentException("Relations must have the same types for union.");
+        }
+
+        Relation result = Utils.copySchema(rel1);
+        Set<List<Cell>> knownRows = new HashSet<>();
+        for (int i = 0; i < rel1.getSize(); i++) {
+            knownRows.add(rel1.getRow(i));
+        }
+        for (int i = 0; i < rel2.getSize(); i++) {
+            List<Cell> row = rel2.getRow(i);
+            if (knownRows.contains(row)) {
+                result.insert(row);
+            }
+        }
+        return result;
+    }
+
+    @Override
     public Relation select(Relation rel, Predicate p) {
         return ra.select(rel, p);
     }

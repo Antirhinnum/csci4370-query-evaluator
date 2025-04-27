@@ -47,4 +47,12 @@ public interface ExtendedRA extends RA {
      * @return A new {@link Relation} where rows are ordered by the specified columns.
      */
     Relation orderBy(Relation rel, List<OrderByColumn> orderings);
+
+    /**
+     * Takes the intersection of two relations.
+     *
+     * @return The resulting relation after applying the intersection operation.
+     * @throws IllegalArgumentException If rel1 and rel2 are not compatible.
+     */
+    Relation intersect(Relation rel1, Relation rel2);
 }
