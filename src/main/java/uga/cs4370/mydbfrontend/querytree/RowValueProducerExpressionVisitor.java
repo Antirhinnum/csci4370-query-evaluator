@@ -12,6 +12,9 @@ import uga.cs4370.mydbfrontend.extendedra.RowValueProducer;
 
 import java.util.Collection;
 
+/**
+ * Creates a {@link RowValueProducer} from an {@link Expression}. Expects no context.
+ */
 public class RowValueProducerExpressionVisitor extends ExpressionVisitorAdapter<RowValueProducer> implements OrderByVisitor<OrderByColumn> {
     @Override
     protected <S> RowValueProducer visitExpression(Expression expression, S context) {

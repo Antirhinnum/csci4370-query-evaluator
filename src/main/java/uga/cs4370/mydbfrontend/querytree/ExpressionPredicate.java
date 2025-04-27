@@ -3,8 +3,8 @@ package uga.cs4370.mydbfrontend.querytree;
 import net.sf.jsqlparser.expression.Expression;
 import uga.cs4370.mydb.Cell;
 import uga.cs4370.mydb.Predicate;
+import uga.cs4370.mydbfrontend.Utils;
 import uga.cs4370.mydbfrontend.expressionevaluation.RowExpressionEvaluator;
-import uga.cs4370.mydbfrontend.expressionevaluation.RowExpressionEvaluatorImpl;
 
 import java.util.List;
 
@@ -26,6 +26,6 @@ public abstract class ExpressionPredicate implements Predicate {
     @Override
     public final boolean check(List<Cell> row) {
         Cell result = this.getEvaluator().evaluate(this.getExpression(), row);
-        return RowExpressionEvaluatorImpl.parseCellToBoolean(result);
+        return Utils.parseCellToBoolean(result);
     }
 }

@@ -15,5 +15,4 @@ public interface RowExpressionEvaluator extends ExpressionEvaluator {
     default Cell evaluate(Expression expression) {
         return evaluate(expression, null);
     }
-
 }

@@ -151,6 +151,47 @@ public final class ExtendedRAImpl implements ExtendedRA {
     }
 
     @Override
+    public List<GroupedRelation> groupBy(Relation rel, List<RowValueProducer> groupingValueProducers) {
+        Map<List<Cell>, GroupedRelation> groupedRelations = new HashMap<>();
+        Set<Integer> groupedAttributeIndexes = new HashSet<>();
+
+        for (int i = 0; i < rel.getSize(); i++) {
+            List<Cell> row = rel.getRow(i);
+            List<Cell> groupingValues = new ArrayList<>();
+            for (RowValueProducer groupingValueProducer : groupingValueProducers) {
+                Cell valueFromRow = groupingValueProducer.getValueFromRow(rel, row);
+                groupingValues.add(valueFromRow);
+
+                if (i != 0) {
+                    continue;
+                }
+
+                // On the first iteration, see which columns are being grouped by.
+                for (int j = 0; j < row.size(); j++) {
+                    if (row.get(j) == valueFromRow) { // Intentional reference equality check
+                        groupedAttributeIndexes.add(j);
+                        break;
+                    }
+                }
+            }
+
+            if (i == 0 && groupedAttributeIndexes.size() != groupingValueProducers.size()) {
+                throw new RuntimeException("Could not find all grouped column indexes");
+            }
+
+            if (groupedRelations.containsKey(groupingValues)) {
+                GroupedRelation existingGroup = groupedRelations.get(groupingValues);
+                existingGroup.insert(row);
+            } else {
+                Relation relationToGroup = Utils.copySchema(rel);
+                relationToGroup.insert(row);
+                groupedRelations.put(groupingValues, new GroupedRelationImpl(relationToGroup, new ArrayList<>(groupedAttributeIndexes)));
+            }
+        }
+        return groupedRelations.values().stream().toList();
+    }
+
+    @Override
     public Relation select(Relation rel, Predicate p) {
         return ra.select(rel, p);
     }

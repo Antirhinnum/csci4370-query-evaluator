@@ -12,6 +12,13 @@ import java.util.List;
 public interface ProjectedAttributes {
 
     /**
+     * @return Returns {@code true} if this {@link ProjectedAttributes} aggregates together rows in a {@link Relation}.
+     */
+    default boolean isAggregating() {
+        return false;
+    }
+
+    /**
      * @param schema The schema of the {@link Relation} to project from.
      * @return A {@link List} of attribute names that this {@link ProjectedAttributes} will project.
      */

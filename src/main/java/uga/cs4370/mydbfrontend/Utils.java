@@ -5,6 +5,7 @@ import uga.cs4370.mydb.Relation;
 import uga.cs4370.mydb.RelationBuilder;
 import uga.cs4370.mydb.Type;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -89,5 +90,25 @@ public class Utils {
         }
 
         return description;
+    }
+
+    public static Cell parseBooleanToCell(boolean b) {
+        return Cell.val(b ? 1 : 0);
+    }
+
+    public static boolean parseCellToBoolean(Cell c) {
+        if (c == null)
+            throw new NullPointerException("Cannot parse null to boolean, this may be a result of an unimplemented operation");
+        if (c.getType() != Type.INTEGER) return false;
+        return c.getAsInt() != 0;
+    }
+
+    public static BigDecimal parseCellToNumeric(Cell c) {
+        if (c == null) throw new NullPointerException("Cell was null");
+        if (c.getType() == Type.STRING) return null;
+
+        if (c.getType() == Type.DOUBLE) return BigDecimal.valueOf(c.getAsDouble());
+        else if (c.getType() == Type.INTEGER) return BigDecimal.valueOf(c.getAsInt());
+        else throw new UnsupportedOperationException("Cannot convert Cell to a numeric type");
     }
 }

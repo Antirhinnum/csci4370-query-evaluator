@@ -55,4 +55,13 @@ public interface ExtendedRA extends RA {
      * @throws IllegalArgumentException If rel1 and rel2 are not compatible.
      */
     Relation intersect(Relation rel1, Relation rel2);
+
+    /**
+     * Splits a {@link Relation} into groups using the values produced by {@code groupingValueProducers}.
+     *
+     * @param rel                    The {@link Relation} to split into groups.
+     * @param groupingValueProducers A set of {@link RowValueProducer RowValueProducers} that produce the values to group by.
+     * @return A set of {@link GroupedRelation GroupedRelations}.
+     */
+    List<GroupedRelation> groupBy(Relation rel, List<RowValueProducer> groupingValueProducers);
 }

@@ -25,26 +25,6 @@ public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> impl
         this.schema = schema;
     }
 
-    public static Cell parseBooleanToCell(boolean b) {
-        return Cell.val(b ? 1 : 0);
-    }
-
-    public static boolean parseCellToBoolean(Cell c) {
-        if (c == null)
-            throw new NullPointerException("Cannot parse null to boolean, this may be a result of an unimplemented operation");
-        if (c.getType() != Type.INTEGER) return false;
-        return c.getAsInt() != 0;
-    }
-
-    public static BigDecimal parseCellToNumeric(Cell c) {
-        if (c == null) throw new NullPointerException("Cell was null");
-        if (c.getType() == Type.STRING) return null;
-
-        if (c.getType() == Type.DOUBLE) return BigDecimal.valueOf(c.getAsDouble());
-        else if (c.getType() == Type.INTEGER) return BigDecimal.valueOf(c.getAsInt());
-        else throw new UnsupportedOperationException("Cannot convert Cell to a numeric type");
-    }
-
     @Override
     public <S> Cell visit(DoubleValue doubleValue, S context) {
         return Cell.val(doubleValue.getValue());
@@ -67,7 +47,7 @@ public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> impl
 
     @Override
     public <S> Cell visit(BooleanValue booleanValue, S context) {
-        return parseBooleanToCell(booleanValue.getValue());
+        return Utils.parseBooleanToCell(booleanValue.getValue());
     }
 
     @Override
@@ -75,8 +55,8 @@ public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> impl
         Cell leftCell = addition.getLeftExpression().accept(this, context);
         Cell rightCell = addition.getRightExpression().accept(this, context);
 
-        BigDecimal left = parseCellToNumeric(leftCell);
-        BigDecimal right = parseCellToNumeric(rightCell);
+        BigDecimal left = Utils.parseCellToNumeric(leftCell);
+        BigDecimal right = Utils.parseCellToNumeric(rightCell);
 
         if (left == null || right == null) throw new IllegalArgumentException("Cannot add non-numeric values");
         BigDecimal sum = left.add(right, MathContext.DECIMAL64);
@@ -93,8 +73,8 @@ public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> impl
         Cell leftCell = division.getLeftExpression().accept(this, context);
         Cell rightCell = division.getRightExpression().accept(this, context);
 
-        BigDecimal left = parseCellToNumeric(leftCell);
-        BigDecimal right = parseCellToNumeric(rightCell);
+        BigDecimal left = Utils.parseCellToNumeric(leftCell);
+        BigDecimal right = Utils.parseCellToNumeric(rightCell);
 
         if (left == null || right == null) throw new IllegalArgumentException("Cannot divide non-numeric values");
         BigDecimal quotient = left.divide(right, MathContext.DECIMAL64);
@@ -106,8 +86,8 @@ public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> impl
         Cell leftCell = integerDivision.getLeftExpression().accept(this, context);
         Cell rightCell = integerDivision.getRightExpression().accept(this, context);
 
-        BigDecimal left = parseCellToNumeric(leftCell);
-        BigDecimal right = parseCellToNumeric(rightCell);
+        BigDecimal left = Utils.parseCellToNumeric(leftCell);
+        BigDecimal right = Utils.parseCellToNumeric(rightCell);
 
         if (left == null || right == null) throw new IllegalArgumentException("Cannot divide non-numeric values");
         BigDecimal quotient = left.divideToIntegralValue(right, MathContext.DECIMAL64);
@@ -119,8 +99,8 @@ public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> impl
         Cell leftCell = multiplication.getLeftExpression().accept(this, context);
         Cell rightCell = multiplication.getRightExpression().accept(this, context);
 
-        BigDecimal left = parseCellToNumeric(leftCell);
-        BigDecimal right = parseCellToNumeric(rightCell);
+        BigDecimal left = Utils.parseCellToNumeric(leftCell);
+        BigDecimal right = Utils.parseCellToNumeric(rightCell);
 
         if (left == null || right == null) throw new IllegalArgumentException("Cannot multiply non-numeric values");
         BigDecimal product = left.multiply(right, MathContext.DECIMAL64);
@@ -137,8 +117,8 @@ public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> impl
         Cell leftCell = subtraction.getLeftExpression().accept(this, context);
         Cell rightCell = subtraction.getRightExpression().accept(this, context);
 
-        BigDecimal left = parseCellToNumeric(leftCell);
-        BigDecimal right = parseCellToNumeric(rightCell);
+        BigDecimal left = Utils.parseCellToNumeric(leftCell);
+        BigDecimal right = Utils.parseCellToNumeric(rightCell);
 
         if (left == null || right == null) throw new IllegalArgumentException("Cannot subtract non-numeric values");
         BigDecimal difference = left.subtract(right, MathContext.DECIMAL64);
@@ -155,9 +135,9 @@ public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> impl
         Cell leftCell = andExpression.getLeftExpression().accept(this, context);
         Cell rightCell = andExpression.getRightExpression().accept(this, context);
         if (Driver.DEBUG) {
-            return parseBooleanToCell(parseCellToBoolean(leftCell) & parseCellToBoolean(rightCell));
+            return Utils.parseBooleanToCell(Utils.parseCellToBoolean(leftCell) & Utils.parseCellToBoolean(rightCell));
         } else {
-            return parseBooleanToCell(parseCellToBoolean(leftCell) && parseCellToBoolean(rightCell));
+            return Utils.parseBooleanToCell(Utils.parseCellToBoolean(leftCell) && Utils.parseCellToBoolean(rightCell));
         }
     }
 
@@ -166,9 +146,9 @@ public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> impl
         Cell leftCell = orExpression.getLeftExpression().accept(this, context);
         Cell rightCell = orExpression.getRightExpression().accept(this, context);
         if (Driver.DEBUG) {
-            return parseBooleanToCell(parseCellToBoolean(leftCell) | parseCellToBoolean(rightCell));
+            return Utils.parseBooleanToCell(Utils.parseCellToBoolean(leftCell) | Utils.parseCellToBoolean(rightCell));
         } else {
-            return parseBooleanToCell(parseCellToBoolean(leftCell) || parseCellToBoolean(rightCell));
+            return Utils.parseBooleanToCell(Utils.parseCellToBoolean(leftCell) || Utils.parseCellToBoolean(rightCell));
         }
     }
 
@@ -176,7 +156,7 @@ public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> impl
     public <S> Cell visit(XorExpression xorExpression, S context) {
         Cell leftCell = xorExpression.getLeftExpression().accept(this, context);
         Cell rightCell = xorExpression.getRightExpression().accept(this, context);
-        return parseBooleanToCell(parseCellToBoolean(leftCell) ^ parseCellToBoolean(rightCell));
+        return Utils.parseBooleanToCell(Utils.parseCellToBoolean(leftCell) ^ Utils.parseCellToBoolean(rightCell));
     }
 
     @Override
@@ -185,21 +165,21 @@ public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> impl
         Cell lowerBoundCell = between.getBetweenExpressionStart().accept(this, context);
         Cell upperBoundCell = between.getBetweenExpressionEnd().accept(this, context);
 
-        BigDecimal check = parseCellToNumeric(checkCell);
-        BigDecimal lower = parseCellToNumeric(lowerBoundCell);
-        BigDecimal upper = parseCellToNumeric(upperBoundCell);
+        BigDecimal check = Utils.parseCellToNumeric(checkCell);
+        BigDecimal lower = Utils.parseCellToNumeric(lowerBoundCell);
+        BigDecimal upper = Utils.parseCellToNumeric(upperBoundCell);
         if (check == null || lower == null || upper == null)
             throw new IllegalArgumentException("Cannot check between non-numeric values");
 
         boolean result = check.compareTo(lower) >= 0 && check.compareTo(upper) <= 0;
-        return parseBooleanToCell(result ^ between.isNot());
+        return Utils.parseBooleanToCell(result ^ between.isNot());
     }
 
     @Override
     public <S> Cell visit(EqualsTo equalsTo, S context) {
         Cell leftCell = equalsTo.getLeftExpression().accept(this, context);
         Cell rightCell = equalsTo.getRightExpression().accept(this, context);
-        return parseBooleanToCell(leftCell.equals(rightCell));
+        return Utils.parseBooleanToCell(leftCell.equals(rightCell));
     }
 
     @Override
@@ -207,12 +187,12 @@ public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> impl
         Cell leftCell = greaterThan.getLeftExpression().accept(this, context);
         Cell rightCell = greaterThan.getRightExpression().accept(this, context);
 
-        BigDecimal left = parseCellToNumeric(leftCell);
-        BigDecimal right = parseCellToNumeric(rightCell);
+        BigDecimal left = Utils.parseCellToNumeric(leftCell);
+        BigDecimal right = Utils.parseCellToNumeric(rightCell);
 
         if (left == null || right == null)
             throw new IllegalArgumentException("Cannot compare non-numeric values using greater than");
-        return parseBooleanToCell(left.compareTo(right) > 0);
+        return Utils.parseBooleanToCell(left.compareTo(right) > 0);
     }
 
     @Override
@@ -220,12 +200,12 @@ public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> impl
         Cell leftCell = greaterThanEquals.getLeftExpression().accept(this, context);
         Cell rightCell = greaterThanEquals.getRightExpression().accept(this, context);
 
-        BigDecimal left = parseCellToNumeric(leftCell);
-        BigDecimal right = parseCellToNumeric(rightCell);
+        BigDecimal left = Utils.parseCellToNumeric(leftCell);
+        BigDecimal right = Utils.parseCellToNumeric(rightCell);
 
         if (left == null || right == null)
             throw new IllegalArgumentException("Cannot compare non-numeric values using greater than or equal to");
-        return parseBooleanToCell(left.compareTo(right) >= 0);
+        return Utils.parseBooleanToCell(left.compareTo(right) >= 0);
     }
 
     @Override
@@ -233,12 +213,12 @@ public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> impl
         Cell leftCell = minorThan.getLeftExpression().accept(this, context);
         Cell rightCell = minorThan.getRightExpression().accept(this, context);
 
-        BigDecimal left = parseCellToNumeric(leftCell);
-        BigDecimal right = parseCellToNumeric(rightCell);
+        BigDecimal left = Utils.parseCellToNumeric(leftCell);
+        BigDecimal right = Utils.parseCellToNumeric(rightCell);
 
         if (left == null || right == null)
             throw new IllegalArgumentException("Cannot compare non-numeric values using less than");
-        return parseBooleanToCell(left.compareTo(right) < 0);
+        return Utils.parseBooleanToCell(left.compareTo(right) < 0);
     }
 
     @Override
@@ -246,19 +226,19 @@ public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> impl
         Cell leftCell = minorThanEquals.getLeftExpression().accept(this, context);
         Cell rightCell = minorThanEquals.getRightExpression().accept(this, context);
 
-        BigDecimal left = parseCellToNumeric(leftCell);
-        BigDecimal right = parseCellToNumeric(rightCell);
+        BigDecimal left = Utils.parseCellToNumeric(leftCell);
+        BigDecimal right = Utils.parseCellToNumeric(rightCell);
 
         if (left == null || right == null)
             throw new IllegalArgumentException("Cannot compare non-numeric values using less than or equal to");
-        return parseBooleanToCell(left.compareTo(right) <= 0);
+        return Utils.parseBooleanToCell(left.compareTo(right) <= 0);
     }
 
     @Override
     public <S> Cell visit(NotEqualsTo notEqualsTo, S context) {
         Cell leftCell = notEqualsTo.getLeftExpression().accept(this, context);
         Cell rightCell = notEqualsTo.getRightExpression().accept(this, context);
-        return parseBooleanToCell(!leftCell.equals(rightCell));
+        return Utils.parseBooleanToCell(!leftCell.equals(rightCell));
     }
 
     @Override
@@ -281,7 +261,7 @@ public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> impl
 
         String regex = Utils.convertSqlPatternToRegex(patternCell.getAsString(), escape);
         Pattern pattern = Pattern.compile(regex);
-        return parseBooleanToCell(pattern.matcher(checkCell.getAsString()).matches() ^ likeExpression.isNot());
+        return Utils.parseBooleanToCell(pattern.matcher(checkCell.getAsString()).matches() ^ likeExpression.isNot());
     }
 
     @Override
@@ -339,7 +319,7 @@ public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> impl
     @Override
     public <S> Cell visit(NotExpression notExpr, S context) {
         Cell toNegate = notExpr.getExpression().accept(this, context);
-        return parseBooleanToCell(!parseCellToBoolean(toNegate));
+        return Utils.parseBooleanToCell(!Utils.parseCellToBoolean(toNegate));
     }
 
     @Override
