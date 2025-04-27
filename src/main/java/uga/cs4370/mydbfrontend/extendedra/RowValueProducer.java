@@ -6,9 +6,9 @@ import uga.cs4370.mydb.Relation;
 import java.util.List;
 
 /**
- * An object that produces the value a row in a {@link Relation} should be ordered by.
+ * An object that produces a value a row in a {@link Relation}.
  */
 @FunctionalInterface
-public interface RowOrdering {
+public interface RowValueProducer {
     Cell getValueToOrderBy(Relation schema, List<Cell> row);
 }

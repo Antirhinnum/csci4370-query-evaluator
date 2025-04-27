@@ -86,7 +86,7 @@ public class QueryTreeNodeSelectVisitor extends SelectVisitorAdapter<QueryTreeNo
 
         List<OrderByElement> orderBys = plainSelect.getOrderByElements();
         if (orderBys != null && !orderBys.isEmpty()) {
-            RowOrderingExpressionVisitor expressionVisitor = new RowOrderingExpressionVisitor();
+            RowValueProducerExpressionVisitor expressionVisitor = new RowValueProducerExpressionVisitor();
             List<OrderByColumn> orderByColumns = new ArrayList<>();
             for (OrderByElement orderByElement : orderBys) {
                 orderByColumns.add(orderByElement.accept(expressionVisitor, null));

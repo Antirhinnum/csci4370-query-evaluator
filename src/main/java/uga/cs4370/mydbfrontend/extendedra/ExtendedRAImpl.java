@@ -94,11 +94,11 @@ public final class ExtendedRAImpl implements ExtendedRA {
 
         Comparator<List<Cell>> rowComparer = (o1, o2) -> {
             for (OrderByColumn orderByColumn : orderings) {
-                Cell cell1 = orderByColumn.getOrdering().getValueToOrderBy(rel, o1);
-                Cell cell2 = orderByColumn.getOrdering().getValueToOrderBy(rel, o2);
+                Cell cell1 = orderByColumn.ordering().getValueToOrderBy(rel, o1);
+                Cell cell2 = orderByColumn.ordering().getValueToOrderBy(rel, o2);
                 int comparison = cellComparator.compare(cell1, cell2);
                 if (comparison != 0) {
-                    return (orderByColumn.isAscending() ? 1 : -1) * comparison;
+                    return (orderByColumn.ascending() ? 1 : -1) * comparison;
                 }
             }
             return 0;

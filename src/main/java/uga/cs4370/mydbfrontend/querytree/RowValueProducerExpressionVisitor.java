@@ -8,13 +8,13 @@ import net.sf.jsqlparser.statement.select.OrderByVisitor;
 import uga.cs4370.mydbfrontend.expressionevaluation.RowExpressionEvaluator;
 import uga.cs4370.mydbfrontend.expressionevaluation.RowExpressionEvaluatorImpl;
 import uga.cs4370.mydbfrontend.extendedra.OrderByColumn;
-import uga.cs4370.mydbfrontend.extendedra.RowOrdering;
+import uga.cs4370.mydbfrontend.extendedra.RowValueProducer;
 
 import java.util.Collection;
 
-public class RowOrderingExpressionVisitor extends ExpressionVisitorAdapter<RowOrdering> implements OrderByVisitor<OrderByColumn> {
+public class RowValueProducerExpressionVisitor extends ExpressionVisitorAdapter<RowValueProducer> implements OrderByVisitor<OrderByColumn> {
     @Override
-    protected <S> RowOrdering visitExpression(Expression expression, S context) {
+    protected <S> RowValueProducer visitExpression(Expression expression, S context) {
         return (schema, row) -> {
             RowExpressionEvaluator rowEvaluator = new RowExpressionEvaluatorImpl(schema);
             return rowEvaluator.evaluate(expression, row);
@@ -22,18 +22,18 @@ public class RowOrderingExpressionVisitor extends ExpressionVisitorAdapter<RowOr
     }
 
     @Override
-    protected <S> RowOrdering visitBinaryExpression(BinaryExpression binaryExpression, S context) {
+    protected <S> RowValueProducer visitBinaryExpression(BinaryExpression binaryExpression, S context) {
         return this.visitExpression(binaryExpression, context);
     }
 
     @Override
-    protected <S> RowOrdering visitExpressions(Expression expression, S context, Collection<Expression> subExpressions) {
+    protected <S> RowValueProducer visitExpressions(Expression expression, S context, Collection<Expression> subExpressions) {
         return this.visitExpression(expression, context);
     }
 
     @Override
     public <S> OrderByColumn visit(OrderByElement orderBy, S context) {
-        RowOrdering ordering = orderBy.getExpression().accept(this, context);
+        RowValueProducer ordering = orderBy.getExpression().accept(this, context);
         return new OrderByColumn(ordering, orderBy.isAsc());
     }
 }
