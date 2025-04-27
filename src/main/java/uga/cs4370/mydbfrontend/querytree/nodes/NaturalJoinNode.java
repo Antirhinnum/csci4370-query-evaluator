@@ -1,9 +1,11 @@
 package uga.cs4370.mydbfrontend.querytree.nodes;
 
+import uga.cs4370.mydb.RA;
 import uga.cs4370.mydb.Relation;
 import uga.cs4370.mydbfrontend.Nameable;
 import uga.cs4370.mydbfrontend.extendedra.ExtendedRA;
 import uga.cs4370.mydbfrontend.querytree.QueryTreeNode;
+import uga.cs4370.mydbimpl.RAImpl;
 
 import java.util.List;
 
@@ -26,11 +28,9 @@ public class NaturalJoinNode implements QueryTreeNode {
 
     @Override
     public Relation getRelationSchema(List<Nameable<Relation>> knownRelations) {
-
-        // TODO
+        RA ra = new RAImpl();
         Relation leftSchema = this.leftChild.getRelationSchema(knownRelations);
         Relation rightSchema = this.rightChild.getRelationSchema(knownRelations);
-
-        return null;
+        return ra.join(leftSchema, rightSchema);
     }
 }
