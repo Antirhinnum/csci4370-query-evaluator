@@ -288,7 +288,7 @@ public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> impl
     public <S> Cell visit(Function function, S context) {
         ExpressionList<?> parameters = function.getParameters();
         List<Cell> evaluatedParameters = parameters.stream().map(cell -> cell.accept(this, context)).toList();
-        return switch (function.getName()) {
+        return switch (function.getName().trim().toLowerCase()) {
             case "concat" -> {
                 List<String> strings = evaluatedParameters.stream().map(Cell::toString).toList();
                 yield Cell.val(String.join("", strings));
@@ -324,11 +324,11 @@ public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> impl
             }
             case "trim" -> {
                 if (evaluatedParameters.size() != 1) {
-                    throw new IllegalArgumentException("Length expects exactly one parameter");
+                    throw new IllegalArgumentException("Trim expects exactly one parameter");
                 }
                 Cell argument = evaluatedParameters.get(0);
                 if (argument.getType() != Type.STRING) {
-                    throw new IllegalArgumentException("Length expects a string");
+                    throw new IllegalArgumentException("Trim expects a string");
                 }
                 yield Cell.val(argument.getAsString().trim());
             }

@@ -45,8 +45,8 @@ public class ProjectedColumnExpressionVisitor extends ExpressionVisitorAdapter<P
             }
 
             @Override
-            public List<Cell> projectFromRow(Relation schema, List<Cell> row) {
-                RowExpressionEvaluator evaluator = new RowExpressionEvaluatorImpl(schema);
+            public List<Cell> projectFromRow(Relation relation, List<Cell> row) {
+                RowExpressionEvaluator evaluator = new RowExpressionEvaluatorImpl(relation);
                 Cell evaluated = evaluator.evaluate(selectItem.getExpression(), row);
                 return List.of(evaluated);
             }
@@ -78,7 +78,7 @@ public class ProjectedColumnExpressionVisitor extends ExpressionVisitorAdapter<P
             }
 
             @Override
-            public List<Cell> projectFromRow(Relation schema, List<Cell> row) {
+            public List<Cell> projectFromRow(Relation relation, List<Cell> row) {
                 return row;
             }
         };

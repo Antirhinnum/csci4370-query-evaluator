@@ -12,7 +12,8 @@ public interface RowExpressionEvaluator extends ExpressionEvaluator {
     Cell evaluate(Expression expression, List<Cell> row);
 
     @Override
-    default Cell evaluate(Expression expression)  {
+    default Cell evaluate(Expression expression) {
         return evaluate(expression, null);
-    };
+    }
+
 }

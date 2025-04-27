@@ -24,9 +24,9 @@ public interface ProjectedAttributes {
     List<Type> getAttrTypes(Relation schema);
 
     /**
-     * @param schema The schema of the {@link Relation} to project from.
-     * @param row    The row in a {@link Relation} to project values from.
+     * @param relation The schema of the {@link Relation} to project from.
+     * @param row      The row in a {@link Relation} to project values from.
      * @return A {@link List} of values that this {@link ProjectedAttributes} projects from {@code row}.
      */
-    List<Cell> projectFromRow(Relation schema, List<Cell> row);
+    List<Cell> projectFromRow(Relation relation, List<Cell> row);
 }
