@@ -30,7 +30,8 @@ public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> impl
     }
 
     public static boolean parseCellToBoolean(Cell c) {
-        if (c == null) throw new NullPointerException("Cannot parse null to boolean, this may be a result of an unimplemented operation");
+        if (c == null)
+            throw new NullPointerException("Cannot parse null to boolean, this may be a result of an unimplemented operation");
         if (c.getType() != Type.INTEGER) return false;
         return c.getAsInt() != 0;
     }
@@ -191,29 +192,14 @@ public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> impl
             throw new IllegalArgumentException("Cannot check between non-numeric values");
 
         boolean result = check.compareTo(lower) >= 0 && check.compareTo(upper) <= 0;
-        if (between.isNot()) {
-            result = !result;
-        }
-        return parseBooleanToCell(result);
+        return parseBooleanToCell(result ^ between.isNot());
     }
 
     @Override
     public <S> Cell visit(EqualsTo equalsTo, S context) {
         Cell leftCell = equalsTo.getLeftExpression().accept(this, context);
         Cell rightCell = equalsTo.getRightExpression().accept(this, context);
-
-        boolean result;
-        if (leftCell.getType() == Type.STRING && rightCell.getType() == Type.STRING) {
-            result = leftCell.equals(rightCell);
-        } else {
-            // Using Cell::equals() here would often fail since JSQLParser prefers parsing numbers as doubles instead of integers,
-            // meaning the expression "year = 2005" would fail since year is an INTEGER Cell while 2005 is a DOUBLE Cell.
-            BigDecimal left = parseCellToNumeric(leftCell);
-            BigDecimal right = parseCellToNumeric(rightCell);
-            assert left != null && right != null; // parseCellToNumeric() only returns null if cell::getType() == Type.STRING
-            result = left.compareTo(right) == 0;
-        }
-        return parseBooleanToCell(result);
+        return parseBooleanToCell(leftCell.equals(rightCell));
     }
 
     @Override
@@ -272,18 +258,7 @@ public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> impl
     public <S> Cell visit(NotEqualsTo notEqualsTo, S context) {
         Cell leftCell = notEqualsTo.getLeftExpression().accept(this, context);
         Cell rightCell = notEqualsTo.getRightExpression().accept(this, context);
-
-        boolean result;
-        if (leftCell.getType() == Type.STRING && rightCell.getType() == Type.STRING) {
-            result = !leftCell.equals(rightCell);
-        } else {
-            // See `<S> Cell visit(EqualsTo,S)`
-            BigDecimal left = parseCellToNumeric(leftCell);
-            BigDecimal right = parseCellToNumeric(rightCell);
-            assert left != null && right != null; // parseCellToNumeric() only returns null if cell::getType() == Type.STRING
-            result = left.compareTo(right) != 0;
-        }
-        return parseBooleanToCell(result);
+        return parseBooleanToCell(!leftCell.equals(rightCell));
     }
 
     @Override
@@ -306,7 +281,7 @@ public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> impl
 
         String regex = Utils.convertSqlPatternToRegex(patternCell.getAsString(), escape);
         Pattern pattern = Pattern.compile(regex);
-        return parseBooleanToCell(pattern.matcher(checkCell.getAsString()).matches());
+        return parseBooleanToCell(pattern.matcher(checkCell.getAsString()).matches() ^ likeExpression.isNot());
     }
 
     @Override
@@ -359,6 +334,12 @@ public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> impl
             }
             default -> throw new UnsupportedOperationException("Unknown function: " + function.getName());
         };
+    }
+
+    @Override
+    public <S> Cell visit(NotExpression notExpr, S context) {
+        Cell toNegate = notExpr.getExpression().accept(this, context);
+        return parseBooleanToCell(!parseCellToBoolean(toNegate));
     }
 
     @Override
