@@ -38,4 +38,13 @@ public interface ExtendedRA extends RA {
      * @return A new {@link Relation} where no two columns are identical.
      */
     Relation distinct(Relation rel);
+
+    /**
+     * Orders the rows in {@code rel} by the orderings present in {@code orderings}.
+     *
+     * @param rel       The {@link Relation} to order.
+     * @param orderings The columns to order {@code rel} by. If multiple are present, rows are sorted by all orderings sequentially.
+     * @return A new {@link Relation} where rows are ordered by the specified columns.
+     */
+    Relation orderBy(Relation rel, List<OrderByColumn> orderings);
 }

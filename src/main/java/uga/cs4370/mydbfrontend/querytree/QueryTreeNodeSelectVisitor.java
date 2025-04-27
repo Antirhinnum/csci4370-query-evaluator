@@ -6,6 +6,7 @@ import uga.cs4370.mydb.Predicate;
 import uga.cs4370.mydb.Relation;
 import uga.cs4370.mydbfrontend.SimpleQueryEvaluator;
 import uga.cs4370.mydbfrontend.expressionevaluation.RowExpressionEvaluatorImpl;
+import uga.cs4370.mydbfrontend.extendedra.OrderByColumn;
 import uga.cs4370.mydbfrontend.extendedra.ProjectedAttributes;
 import uga.cs4370.mydbfrontend.querytree.nodes.*;
 
@@ -81,6 +82,16 @@ public class QueryTreeNodeSelectVisitor extends SelectVisitorAdapter<QueryTreeNo
         if (distinct != null) {
             // TODO: DISTINCT ON (a, b, ...)
             sourceNode = new DistinctNode(sourceNode);
+        }
+
+        List<OrderByElement> orderBys = plainSelect.getOrderByElements();
+        if (orderBys != null && !orderBys.isEmpty()) {
+            RowOrderingExpressionVisitor expressionVisitor = new RowOrderingExpressionVisitor();
+            List<OrderByColumn> orderByColumns = new ArrayList<>();
+            for (OrderByElement orderByElement : orderBys) {
+                orderByColumns.add(orderByElement.accept(expressionVisitor, null));
+            }
+            sourceNode = new OrderByNode(sourceNode, orderByColumns);
         }
 
         Limit limit = plainSelect.getLimit();

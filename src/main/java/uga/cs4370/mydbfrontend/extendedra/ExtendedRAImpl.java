@@ -3,9 +3,7 @@ package uga.cs4370.mydbfrontend.extendedra;
 import uga.cs4370.mydb.*;
 import uga.cs4370.mydbfrontend.Utils;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 
 public final class ExtendedRAImpl implements ExtendedRA {
     private final RA ra;
@@ -74,6 +72,57 @@ public final class ExtendedRAImpl implements ExtendedRA {
             if (knownRows.add(row)) {
                 result.insert(row);
             }
+        }
+        return result;
+    }
+
+    @Override
+    public Relation orderBy(Relation rel, List<OrderByColumn> orderings) {
+        Relation result = Utils.copySchema(rel);
+
+        Comparator<Cell> cellComparator = (o1, o2) -> {
+            if (o1.getType() != o2.getType()) {
+                throw new IllegalArgumentException("Cannot compare cells of different types");
+            }
+
+            return switch (o1.getType()) {
+                case INTEGER -> Integer.compare(o1.getAsInt(), o2.getAsInt());
+                case DOUBLE -> Double.compare(o1.getAsDouble(), o2.getAsDouble());
+                case STRING -> o1.getAsString().compareTo(o2.getAsString());
+            };
+        };
+
+        Comparator<List<Cell>> rowComparer = (o1, o2) -> {
+            for (OrderByColumn orderByColumn : orderings) {
+                Cell cell1 = orderByColumn.getOrdering().getValueToOrderBy(rel, o1);
+                Cell cell2 = orderByColumn.getOrdering().getValueToOrderBy(rel, o2);
+                int comparison = cellComparator.compare(cell1, cell2);
+                if (comparison != 0) {
+                    return (orderByColumn.isAscending() ? 1 : -1) * comparison;
+                }
+            }
+            return 0;
+        };
+
+        // Use binary search to insert. Doesn't reduce time complexity (still need to shift all elements after insertion),
+        // but is slightly faster than linear search for the same thing.
+        List<List<Cell>> sortedRows = new ArrayList<>() {
+            @Override
+            public boolean add(List<Cell> row) {
+                int insertionIndex = Collections.binarySearch(this, row, rowComparer);
+                if (insertionIndex < 0) {
+                    insertionIndex = -insertionIndex - 1;
+                }
+                super.add(insertionIndex, row);
+                return true;
+            }
+        };
+
+        for (int i = 0; i < rel.getSize(); i++) {
+            sortedRows.add(rel.getRow(i));
+        }
+        for (List<Cell> row : sortedRows) {
+            result.insert(row);
         }
         return result;
     }
