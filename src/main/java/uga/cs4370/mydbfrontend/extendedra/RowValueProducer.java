@@ -10,5 +10,5 @@ import java.util.List;
  */
 @FunctionalInterface
 public interface RowValueProducer {
-    Cell getValueToOrderBy(Relation schema, List<Cell> row);
+    Cell getValueFromRow(Relation schema, List<Cell> row);
 }
