@@ -1,5 +1,6 @@
 package uga.cs4370.mydbfrontend;
 
+import uga.cs4370.mydb.Cell;
 import uga.cs4370.mydb.Relation;
 import uga.cs4370.mydb.RelationBuilder;
 import uga.cs4370.mydb.Type;
@@ -12,6 +13,7 @@ import java.util.*;
 
 public class Driver {
 
+    public static final boolean DEBUG = false;
     private static final String DATA_HEAD = "C:\\Users\\creep\\Documents\\School\\Spring 2025\\CSCI 4370\\Class Activity 02\\mysql-files";
     private static final String DATA_INSTRUCTOR = Path.of(DATA_HEAD, "instructor_export.csv").toString();
     private static final String DATA_DEPARTMENT = Path.of(DATA_HEAD, "department_export.csv").toString();
@@ -19,8 +21,6 @@ public class Driver {
     private static final String DATA_ADVISOR = Path.of(DATA_HEAD, "advisor_export.csv").toString();
     private static final String DATA_SECTION = Path.of(DATA_HEAD, "section_export.csv").toString();
     private static final String DATA_TEACHES = Path.of(DATA_HEAD, "teaches_export.csv").toString();
-
-    public static final boolean DEBUG = false;
 
     public static void main(String[] args) {
 
@@ -48,6 +48,31 @@ public class Driver {
             String command = commands.remove();
             if (command.startsWith("exit")) {
                 break;
+            }
+
+            final String SHOW_TABLES_COMMAND = "show tables";
+            if (command.equalsIgnoreCase(SHOW_TABLES_COMMAND)) {
+                Relation relationsRelation = new RelationBuilder().attributeNames(List.of("table")).attributeTypes(List.of(Type.STRING)).build();
+                for (Nameable<Relation> relation : relations) {
+                    List<Cell> row = List.of(Cell.val(relation.getName()));
+                    relationsRelation.insert(row);
+                }
+                relationsRelation.print();
+                continue;
+            }
+
+            final String DESCRIBE_COMMAND_PREFIX = "describe ";
+            if (command.toLowerCase().startsWith(DESCRIBE_COMMAND_PREFIX)) {
+                String name = command.substring(DESCRIBE_COMMAND_PREFIX.length());
+                Optional<Nameable<Relation>> matchingRelation = relations.stream().filter(r -> r.getName().equals(name)).findFirst();
+                if (matchingRelation.isPresent()) {
+                    Relation relation = matchingRelation.get().getValue();
+                    Relation description = Utils.describeRelation(relation);
+                    description.print();
+                } else {
+                    System.out.println("Error: No known relation with name \"" + name + "\".");
+                }
+                continue;
             }
 
             Relation result;

@@ -1,5 +1,6 @@
 package uga.cs4370.mydbfrontend;
 
+import uga.cs4370.mydb.Cell;
 import uga.cs4370.mydb.Relation;
 import uga.cs4370.mydb.RelationBuilder;
 import uga.cs4370.mydb.Type;
@@ -49,7 +50,7 @@ public class Utils {
                 continue;
             }
 
-            if (REGEX_MATCH_ANY_SUBSTRING.indexOf(c) >= 0) {
+            if (REGEX_RESERVED_CHARACTERS.indexOf(c) >= 0) {
                 regex.append('\\');
             }
 
@@ -67,5 +68,26 @@ public class Utils {
         }
 
         return regex.toString();
+    }
+
+    /**
+     * Creates a new {@link Relation} containing a description of the attributes found in {@code relation}.
+     *
+     * @param relation The {@link Relation} to describe.
+     * @return A new {@link Relation} that describes {@code relation}.
+     */
+    public static Relation describeRelation(Relation relation) {
+        if (relation == null) {
+            throw new NullPointerException("relation is null");
+        }
+
+        Relation description = new RelationBuilder().attributeNames(List.of("attribute", "type")).attributeTypes(List.of(Type.STRING, Type.STRING)).build();
+
+        for (int i = 0; i < relation.getAttrs().size(); i++) {
+            List<Cell> row = List.of(Cell.val(relation.getAttrs().get(i)), Cell.val(relation.getTypes().get(i).toString()));
+            description.insert(row);
+        }
+
+        return description;
     }
 }
