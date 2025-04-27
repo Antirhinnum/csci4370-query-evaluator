@@ -4,6 +4,7 @@ import uga.cs4370.mydb.*;
 import uga.cs4370.mydbfrontend.Utils;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 public final class ExtendedRAImpl implements ExtendedRA {
@@ -60,6 +61,19 @@ public final class ExtendedRAImpl implements ExtendedRA {
         for (int i = offset; i < offset + limit && i < rel.getSize(); i++) {
             List<Cell> row = rel.getRow(i);
             result.insert(row);
+        }
+        return result;
+    }
+
+    @Override
+    public Relation distinct(Relation rel) {
+        Relation result = Utils.copySchema(rel);
+        HashSet<List<Cell>> knownRows = new HashSet<>();
+        for (int i = 0; i < rel.getSize(); i++) {
+            List<Cell> row = rel.getRow(i);
+            if (knownRows.add(row)) {
+                result.insert(row);
+            }
         }
         return result;
     }

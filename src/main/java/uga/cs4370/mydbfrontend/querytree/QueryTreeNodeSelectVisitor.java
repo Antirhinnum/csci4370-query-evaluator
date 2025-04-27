@@ -77,6 +77,12 @@ public class QueryTreeNodeSelectVisitor extends SelectVisitorAdapter<QueryTreeNo
             sourceNode = new ExtendedProjectNode(sourceNode, projectedColumns);
         }
 
+        Distinct distinct = plainSelect.getDistinct();
+        if (distinct != null) {
+            // TODO: DISTINCT ON (a, b, ...)
+            sourceNode = new DistinctNode(sourceNode);
+        }
+
         Limit limit = plainSelect.getLimit();
         if (limit != null) {
             Expression limitExpression = limit.getRowCount();

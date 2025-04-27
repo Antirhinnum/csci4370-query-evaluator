@@ -24,10 +24,18 @@ public interface ExtendedRA extends RA {
     /**
      * Limits the number of rows in a {@link Relation}.
      *
-     * @param rel The {@link Relation} to operate on.
-     * @param limit The maximum number of rows the resulting {@link Relation} can have.
+     * @param rel    The {@link Relation} to operate on.
+     * @param limit  The maximum number of rows the resulting {@link Relation} can have.
      * @param offset The number of rows to skip when selecting rows. If {@code rel} has fewer than {@code offset} rows, the resulting {@link Relation} will be empty.
      * @return A new {@link Relation} with at most {@code limit} rows.
      */
     Relation limit(Relation rel, int limit, int offset);
+
+    /**
+     * Deduplicates the rows of a {@link Relation}.
+     *
+     * @param rel The {@link Relation} to deduplicate.
+     * @return A new {@link Relation} where no two columns are identical.
+     */
+    Relation distinct(Relation rel);
 }

@@ -69,7 +69,7 @@ public class Driver {
     private static List<Nameable<Relation>> initTables() {
         List<Nameable<Relation>> tables = new ArrayList<>();
 
-        Relation instructor = new RelationBuilder().attributeNames(List.of("i_ID", "i_name", "dept_name", "salary")).attributeTypes(List.of(Type.INTEGER, Type.STRING, Type.STRING, Type.DOUBLE)).build();
+        Relation instructor = new RelationBuilder().attributeNames(List.of("ID", "name", "dept_name", "salary")).attributeTypes(List.of(Type.INTEGER, Type.STRING, Type.STRING, Type.DOUBLE)).build();
         instructor.loadData(DATA_INSTRUCTOR);
         tables.add(new NameableImpl<>(instructor, "instructor"));
 
@@ -77,7 +77,7 @@ public class Driver {
         department.loadData(DATA_DEPARTMENT);
         tables.add(new NameableImpl<>(department, "department"));
 
-        Relation student = new RelationBuilder().attributeNames(List.of("s_ID", "s_name", "dept_name", "tot_cred")).attributeTypes(List.of(Type.INTEGER, Type.STRING, Type.STRING, Type.DOUBLE)).build();
+        Relation student = new RelationBuilder().attributeNames(List.of("ID", "name", "dept_name", "tot_cred")).attributeTypes(List.of(Type.INTEGER, Type.STRING, Type.STRING, Type.DOUBLE)).build();
         student.loadData(DATA_STUDENT);
         tables.add(new NameableImpl<>(student, "student"));
 
@@ -89,7 +89,7 @@ public class Driver {
         section.loadData(DATA_SECTION);
         tables.add(new NameableImpl<>(section, "section"));
 
-        Relation teaches = new RelationBuilder().attributeNames(List.of("i_ID", "course_id", "sec_id", "semester", "year")).attributeTypes(List.of(Type.INTEGER, Type.INTEGER, Type.INTEGER, Type.STRING, Type.INTEGER)).build();
+        Relation teaches = new RelationBuilder().attributeNames(List.of("ID", "course_id", "sec_id", "semester", "year")).attributeTypes(List.of(Type.INTEGER, Type.INTEGER, Type.INTEGER, Type.STRING, Type.INTEGER)).build();
         teaches.loadData(DATA_TEACHES);
         tables.add(new NameableImpl<>(teaches, "teaches"));
 
