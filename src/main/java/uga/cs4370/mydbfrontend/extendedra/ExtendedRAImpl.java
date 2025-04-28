@@ -25,7 +25,16 @@ public final class ExtendedRAImpl implements ExtendedRA {
         Relation result = new RelationBuilder().attributeNames(attrNames).attributeTypes(attrTypes).build();
         if (rel == null || rel.getSize() == 0) {
             // We can project a single empty row.
-            List<Cell> row = List.of();
+            List<Cell> row;
+            if (rel != null) {
+                row = rel.getTypes().stream().map(type -> switch (type) {
+                    case INTEGER -> Cell.val(0);
+                    case DOUBLE -> Cell.val(0.0);
+                    case STRING -> Cell.val("");
+                }).toList();
+            } else {
+                row = List.of();
+            }
             List<Cell> newRow = new ArrayList<>();
             for (ProjectedAttributes projectedColumn : projectedAttributesList) {
                 newRow.addAll(projectedColumn.projectFromRow(rel, row));

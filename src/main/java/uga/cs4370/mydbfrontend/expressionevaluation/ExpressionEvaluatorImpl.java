@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 
 public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> implements ExpressionEvaluator {
     protected final Relation schema;
+    protected Relation currentRelation;
 
     public ExpressionEvaluatorImpl(Relation schema) {
         this.schema = schema;
@@ -325,5 +326,15 @@ public class ExpressionEvaluatorImpl extends ExpressionVisitorAdapter<Cell> impl
     @Override
     public Cell evaluate(Expression expression) {
         return expression.accept(this, null);
+    }
+
+    @Override
+    public Relation getCurrentRelation() {
+        return this.currentRelation;
+    }
+
+    @Override
+    public void setCurrentRelation(Relation relation) {
+        this.currentRelation = relation;
     }
 }

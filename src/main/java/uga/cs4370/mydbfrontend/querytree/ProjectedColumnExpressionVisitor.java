@@ -10,29 +10,22 @@ import net.sf.jsqlparser.statement.select.SelectItem;
 import uga.cs4370.mydb.Cell;
 import uga.cs4370.mydb.Relation;
 import uga.cs4370.mydb.Type;
-import uga.cs4370.mydbfrontend.Utils;
 import uga.cs4370.mydbfrontend.expressionevaluation.ExpressionTypesEvaluator;
 import uga.cs4370.mydbfrontend.expressionevaluation.ExpressionTypesEvaluatorImpl;
 import uga.cs4370.mydbfrontend.expressionevaluation.RowExpressionEvaluator;
 import uga.cs4370.mydbfrontend.expressionevaluation.RowExpressionEvaluatorImpl;
 import uga.cs4370.mydbfrontend.extendedra.GroupedRelation;
 import uga.cs4370.mydbfrontend.extendedra.ProjectedAttributes;
-import uga.cs4370.mydbfrontend.extendedra.RowValueProducer;
 
-import java.math.BigDecimal;
-import java.math.MathContext;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.function.BiFunction;
 
 /**
  * Visits an {@link Expression} and returns {@link ProjectedAttributes}. Intended for use with {@link SelectItem}.
  */
 public class ProjectedColumnExpressionVisitor extends ExpressionVisitorAdapter<ProjectedAttributes> {
 
-    private static <S> ProjectedAttributes visitAggregatingFunctionCall(Function function, S context, BiFunction<Relation, RowValueProducer, Cell> aggregatingFunction) {
+    private static <S> ProjectedAttributes visitAggregatingFunctionCall(Function function, S context) {
         if (!(context instanceof SelectItem<?> selectItem)) {
             throw new IllegalArgumentException("context is not a SelectItem");
         }
@@ -66,9 +59,10 @@ public class ProjectedColumnExpressionVisitor extends ExpressionVisitorAdapter<P
 
             @Override
             public List<Cell> projectFromRow(GroupedRelation relation, List<Cell> row) {
-                RowValueProducerExpressionVisitor producerVisitor = new RowValueProducerExpressionVisitor();
-                RowValueProducer producer = function.getParameters().get(0).accept(producerVisitor, null);
-                return List.of(aggregatingFunction.apply(relation, producer));
+                RowExpressionEvaluator evaluator = new RowExpressionEvaluatorImpl(relation);
+                evaluator.setCurrentRelation(relation);
+                Cell evaluated = evaluator.evaluate(selectItem.getExpression(), row);
+                return List.of(evaluated);
             }
         };
     }
@@ -138,59 +132,7 @@ public class ProjectedColumnExpressionVisitor extends ExpressionVisitorAdapter<P
     @Override
     public <S> ProjectedAttributes visit(Function function, S context) {
         return switch (function.getName().trim().toLowerCase()) {
-            case "avg" -> visitAggregatingFunctionCall(function, context, (relation, producer) -> {
-                BigDecimal result = BigDecimal.ZERO;
-                for (int i = 0; i < relation.getSize(); i++) {
-                    List<Cell> row = relation.getRow(i);
-                    Cell value = producer.getValueFromRow(relation, row);
-                    result = result.add(Utils.parseCellToNumeric(value));
-                }
-                BigDecimal average = result.divide(new BigDecimal(relation.getSize()), MathContext.DECIMAL64);
-                return Cell.val(average.doubleValue());
-            });
-            case "sum" -> visitAggregatingFunctionCall(function, context, (relation, producer) -> {
-                BigDecimal result = BigDecimal.ZERO;
-                for (int i = 0; i < relation.getSize(); i++) {
-                    List<Cell> row = relation.getRow(i);
-                    Cell value = producer.getValueFromRow(relation, row);
-                    result = result.add(Utils.parseCellToNumeric(value));
-                }
-                return Cell.val(result.doubleValue());
-            });
-            case "min" -> visitAggregatingFunctionCall(function, context, (relation, producer) -> {
-                BigDecimal result = BigDecimal.valueOf(Double.MAX_VALUE);
-                for (int i = 0; i < relation.getSize(); i++) {
-                    List<Cell> row = relation.getRow(i);
-                    Cell value = producer.getValueFromRow(relation, row);
-                    result = result.min(Utils.parseCellToNumeric(value));
-                }
-                return Cell.val(result.doubleValue());
-            });
-            case "max" -> visitAggregatingFunctionCall(function, context, (relation, producer) -> {
-                BigDecimal result = BigDecimal.valueOf(-Double.MAX_VALUE);
-                for (int i = 0; i < relation.getSize(); i++) {
-                    List<Cell> row = relation.getRow(i);
-                    Cell value = producer.getValueFromRow(relation, row);
-                    result = result.max(Utils.parseCellToNumeric(value));
-                }
-                return Cell.val(result.doubleValue());
-            });
-            case "count" -> visitAggregatingFunctionCall(function, context, (relation, producer) -> {
-                if (!function.isDistinct()) {
-                    return Cell.val(relation.getSize());
-                }
-
-                int uniqueValues = 0;
-                Set<Cell> knownValues = new HashSet<>();
-                for (int i = 0; i < relation.getSize(); i++) {
-                    List<Cell> row = relation.getRow(i);
-                    Cell value = producer.getValueFromRow(relation, row);
-                    if (knownValues.add(value)) {
-                        uniqueValues++;
-                    }
-                }
-                return Cell.val(uniqueValues);
-            });
+            case "avg", "sum", "min", "max", "count" -> visitAggregatingFunctionCall(function, context);
             default -> super.visit(function, context);
         };
     }

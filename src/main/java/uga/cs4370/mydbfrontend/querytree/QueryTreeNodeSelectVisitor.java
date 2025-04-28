@@ -65,7 +65,7 @@ public class QueryTreeNodeSelectVisitor extends SelectVisitorAdapter<RelationPro
         if (sourceNode != null && whereClause != null) {
             Relation schema = sourceNode.getRelationSchema(evaluator.getKnownRelations());
             RowExpressionEvaluatorImpl rowEvaluator = new RowExpressionEvaluatorImpl(schema);
-            Predicate predicate = new ExpressionPredicateImpl(rowEvaluator, whereClause);
+            ExpressionPredicate predicate = new ExpressionPredicateImpl(rowEvaluator, whereClause);
             sourceNode = new SelectNode(sourceNode, predicate);
         }
 
@@ -76,7 +76,13 @@ public class QueryTreeNodeSelectVisitor extends SelectVisitorAdapter<RelationPro
             List<RowValueProducer> groupingValueProducers = groupByElement.accept(expressionVisitor, context);
             groupsNode = new GroupByNode(sourceNode, groupingValueProducers);
 
-            // TODO: HAVING
+            Expression havingExpression = plainSelect.getHaving();
+            if (havingExpression != null) {
+                Relation schema = groupsNode.getRelationSchema(evaluator.getKnownRelations());
+                RowExpressionEvaluatorImpl rowEvaluator = new RowExpressionEvaluatorImpl(schema);
+                ExpressionPredicate predicate = new ExpressionPredicateImpl(rowEvaluator, havingExpression);
+                groupsNode = new HavingNode(groupsNode, predicate);
+            }
         } else {
             groupsNode = new GroupsProducingQueryTreeNodeAdapter(sourceNode);
         }
