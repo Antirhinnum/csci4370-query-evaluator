@@ -27,6 +27,8 @@ public class ExtendedProjectNode implements RelationProducingQueryTreeNode {
         List<GroupedRelation> input = new ArrayList<>();
         if (this.child != null) {
             input.addAll(this.child.evaluateGroups(ra, knownRelations));
+        } else {
+            input.add(null);
         }
         Relation result = getRelationSchema(knownRelations);
         for (GroupedRelation group : input) {

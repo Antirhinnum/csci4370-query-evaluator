@@ -163,7 +163,7 @@ class RelationImpl implements Relation {
     @Override
     public void print() {
         // Maximum width for any column
-        final int MAX_COLUMN_WIDTH = 20;
+        final int MAX_COLUMN_WIDTH = 60; // Modified
 
         // Calculate the width of each column
         List<Integer> columnWidths = new ArrayList<>();

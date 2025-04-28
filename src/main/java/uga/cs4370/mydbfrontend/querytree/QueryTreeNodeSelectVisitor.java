@@ -69,7 +69,7 @@ public class QueryTreeNodeSelectVisitor extends SelectVisitorAdapter<RelationPro
             sourceNode = new SelectNode(sourceNode, predicate);
         }
 
-        GroupsProducingQueryTreeNode groupsNode;
+        GroupsProducingQueryTreeNode groupsNode = null;
         GroupByElement groupByElement = plainSelect.getGroupBy();
         if (groupByElement != null) {
             RowValueProducerExpressionVisitor expressionVisitor = new RowValueProducerExpressionVisitor();
@@ -83,7 +83,7 @@ public class QueryTreeNodeSelectVisitor extends SelectVisitorAdapter<RelationPro
                 ExpressionPredicate predicate = new ExpressionPredicateImpl(rowEvaluator, havingExpression);
                 groupsNode = new HavingNode(groupsNode, predicate);
             }
-        } else {
+        } else if (sourceNode != null) {
             groupsNode = new GroupsProducingQueryTreeNodeAdapter(sourceNode);
         }
 

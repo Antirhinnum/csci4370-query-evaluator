@@ -15,15 +15,11 @@ public class Driver {
 
     public static final boolean DEBUG = false;
     private static final String DATA_HEAD = "C:\\Users\\creep\\Documents\\School\\Spring 2025\\CSCI 4370\\Class Activity 02\\mysql-files";
-    private static final String DATA_INSTRUCTOR = Path.of(DATA_HEAD, "instructor_export.csv").toString();
-    private static final String DATA_DEPARTMENT = Path.of(DATA_HEAD, "department_export.csv").toString();
-    private static final String DATA_STUDENT = Path.of(DATA_HEAD, "student_export.csv").toString();
-    private static final String DATA_ADVISOR = Path.of(DATA_HEAD, "advisor_export.csv").toString();
-    private static final String DATA_SECTION = Path.of(DATA_HEAD, "section_export.csv").toString();
-    private static final String DATA_TEACHES = Path.of(DATA_HEAD, "teaches_export.csv").toString();
+    private static Path pathHead;
 
     public static void main(String[] args) {
 
+        pathHead = Path.of(System.getProperty("user.dir"), "src", "main", "resources");
         ExtendedRA ra = new ExtendedRAImpl(new RAImpl());
         List<Nameable<Relation>> relations = initTables();
         SimpleQueryEvaluator qe = new SimpleQueryEvaluator(ra, relations);
@@ -100,30 +96,24 @@ public class Driver {
     private static List<Nameable<Relation>> initTables() {
         List<Nameable<Relation>> tables = new ArrayList<>();
 
-        Relation instructor = new RelationBuilder().attributeNames(List.of("ID", "name", "dept_name", "salary")).attributeTypes(List.of(Type.INTEGER, Type.STRING, Type.STRING, Type.DOUBLE)).build();
-        instructor.loadData(DATA_INSTRUCTOR);
-        tables.add(new NameableImpl<>(instructor, "instructor"));
-
-        Relation department = new RelationBuilder().attributeNames(List.of("dept_name", "building", "budget")).attributeTypes(List.of(Type.STRING, Type.STRING, Type.DOUBLE)).build();
-        department.loadData(DATA_DEPARTMENT);
-        tables.add(new NameableImpl<>(department, "department"));
-
-        Relation student = new RelationBuilder().attributeNames(List.of("ID", "name", "dept_name", "tot_cred")).attributeTypes(List.of(Type.INTEGER, Type.STRING, Type.STRING, Type.DOUBLE)).build();
-        student.loadData(DATA_STUDENT);
-        tables.add(new NameableImpl<>(student, "student"));
-
-        Relation advisor = new RelationBuilder().attributeNames(List.of("s_ID", "i_ID")).attributeTypes(List.of(Type.INTEGER, Type.INTEGER)).build();
-        advisor.loadData(DATA_ADVISOR);
-        tables.add(new NameableImpl<>(advisor, "advisor"));
-
-        Relation section = new RelationBuilder().attributeNames(List.of("course_id", "sec_id", "semester", "year", "building", "room_number", "time_slot_id")).attributeTypes(List.of(Type.INTEGER, Type.INTEGER, Type.STRING, Type.INTEGER, Type.STRING, Type.INTEGER, Type.STRING)).build();
-        section.loadData(DATA_SECTION);
-        tables.add(new NameableImpl<>(section, "section"));
-
-        Relation teaches = new RelationBuilder().attributeNames(List.of("ID", "course_id", "sec_id", "semester", "year")).attributeTypes(List.of(Type.INTEGER, Type.INTEGER, Type.INTEGER, Type.STRING, Type.INTEGER)).build();
-        teaches.loadData(DATA_TEACHES);
-        tables.add(new NameableImpl<>(teaches, "teaches"));
+        tables.add(initTable("advisor", List.of("s_ID", "i_ID"), List.of(Type.INTEGER, Type.INTEGER)));
+        tables.add(initTable("classroom", List.of("building", "room_number", "capacity"), List.of(Type.STRING, Type.STRING, Type.INTEGER)));
+        tables.add(initTable("course", List.of("course_id", "title", "dept_name", "credits"), List.of(Type.INTEGER, Type.STRING, Type.STRING, Type.INTEGER)));
+        tables.add(initTable("department", List.of("dept_name", "building", "budget"), List.of(Type.STRING, Type.STRING, Type.DOUBLE)));
+        tables.add(initTable("instructor", List.of("ID", "name", "dept_name", "salary"), List.of(Type.INTEGER, Type.STRING, Type.STRING, Type.DOUBLE)));
+        tables.add(initTable("prereq", List.of("course_id", "prereq_id"), List.of(Type.INTEGER, Type.INTEGER)));
+        tables.add(initTable("section", List.of("course_id", "sec_id", "semester", "year", "building", "room_number", "time_slot_id"), List.of(Type.INTEGER, Type.INTEGER, Type.STRING, Type.INTEGER, Type.STRING, Type.INTEGER, Type.STRING)));
+        tables.add(initTable("student", List.of("ID", "name", "dept_name", "tot_cred"), List.of(Type.INTEGER, Type.STRING, Type.STRING, Type.DOUBLE)));
+        tables.add(initTable("takes", List.of("ID", "course_id", "sec_id", "semester", "year", "grade"), List.of(Type.INTEGER, Type.INTEGER, Type.INTEGER, Type.STRING, Type.INTEGER, Type.STRING)));
+        tables.add(initTable("teaches", List.of("ID", "course_id", "sec_id", "semester", "year"), List.of(Type.INTEGER, Type.INTEGER, Type.INTEGER, Type.STRING, Type.INTEGER)));
+        tables.add(initTable("time_slot", List.of("time_slot_id", "day", "start_hr", "start_min", "end_hr", "end_min"), List.of(Type.STRING, Type.STRING, Type.INTEGER, Type.INTEGER, Type.INTEGER, Type.INTEGER)));
 
         return List.copyOf(tables);
+    }
+
+    private static Nameable<Relation> initTable(String name, List<String> attributes, List<Type> types) {
+        Relation result = new RelationBuilder().attributeNames(attributes).attributeTypes(types).build();
+        result.loadData(Path.of(pathHead.toString(), name + "_export.csv").toString());
+        return new NameableImpl<>(result, name);
     }
 }
