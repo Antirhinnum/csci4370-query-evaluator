@@ -2,7 +2,7 @@
 
 Created as an honors option project for CSCI 4370 (Database Management), taught by Dr. Menik.
 
-Commits before commit 3eae47228d45c3f0d200ef244290296c3f35d15b are the collaborative effort of Matthew Griffith, Nilan Patel, Michael Scott, and Bryce Wellman. Commit 3eae47228d45c3f0d200ef244290296c3f35d15b and onwards are the sole work of Michael Scott.
+Commits before commit [84ba3bd](https://github.com/Antirhinnum/csci4370-query-evaluator/commit/84ba3bdd65730c93cb312a669f0669de4ab08012) are the collaborative effort of Matthew Griffith, Nilan Patel, Michael Scott, and Bryce Wellman. Commit [84ba3bd](https://github.com/Antirhinnum/csci4370-query-evaluator/commit/84ba3bdd65730c93cb312a669f0669de4ab08012) and onwards are the sole work of Michael Scott.
 
 The dataset used for this program was provided by Dr. Menik of UGA.
 
@@ -58,7 +58,7 @@ SELECT DISTINCT instructor.ID, name, course_id FROM instructor, teaches WHERE in
 
 SELECT T.ID, T.name FROM instructor AS T, instructor S WHERE T.salary > S.salary AND S.dept_name = 'Comp. Sci.';
 
-SELECT name FROM instructor WHERE name LIKE 'L%' OR name LIKE '10\%' ESCAPE '\';
+SELECT name FROM instructor WHERE name LIKE 'L%' OR name LIKE '10\%' ESCAPE '\\';
 
 SELECT concat('Information about ', name, ':') as 'Header', length(name) AS 'Name Length', substring(name, 1, 2) AS 'Abbreviaton' FROM instructor;
 
