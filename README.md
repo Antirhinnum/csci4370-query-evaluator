@@ -1,9 +1,10 @@
-# Project 1 Honors Option - Command Line Query Evaluator
+# Command Line SQL Query Evaluator
 
-CSCI 4370 - Dr. Menik
+Created as an honors option project for CSCI 4370 (Database Management), taught by Dr. Menik.
 
-Extension project created by Michael Scott, building off of the work of Matthew Griffith, Nilan Patel, Michael Scott,
-and Bryce Wellman from Project 1.
+Commits before commit 3eae47228d45c3f0d200ef244290296c3f35d15b are the collaborative effort of Matthew Griffith, Nilan Patel, Michael Scott, and Bryce Wellman. Commit 3eae47228d45c3f0d200ef244290296c3f35d15b and onwards are the sole work of Michael Scott.
+
+The dataset used for this program was provided by Dr. Menik of UGA.
 
 ## Compilation and Running
 
@@ -30,9 +31,9 @@ The program accepts four commands:
 | `describe <table>` | Show the attribute names and types associated with the provided table. Replace `<table>` with a value from the `show tables` command. |
 | `<sql query>`      | Attempts to evaluate the provided SQL query.                                                                                          |
 
-## Supported Grammar
+## Example Statements
 
-The following SQL statements (and variations on them) are all supported by the program:
+The following SQL queries (and variations on them) are supported by the program:
 
 ```sql
 SELECT name FROM instructor;
@@ -81,5 +82,18 @@ SELECT COUNT(*) FROM course;
 
 SELECT dept_name, min(salary) AS min, max(salary) AS max, avg(salary) AS avg FROM instructor GROUP BY dept_name;
 
-select dept_name, avg(salary) as avg_salary from instructor group by dept_name having avg(salary) > 50000;
+SELECT dept_name, avg(salary) AS avg_salary FROM instructor GROUP BY dept_name HAVING avg(salary) > 50000;
 ```
+
+Keywords may be in any case. Queries do nto need to end with a semicolon. Source tables for column names will be inferred if possible.
+
+The following aggregate keywords are available:
+- `CONCAT`
+- `SUBSTRING`
+- `TRIM`
+- `LENGTH`
+- `COUNT`
+- `AVG`
+- `MIN`
+- `MAX`
+- `SUM`

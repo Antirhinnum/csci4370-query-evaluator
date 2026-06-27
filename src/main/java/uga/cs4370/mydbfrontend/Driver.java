@@ -14,7 +14,6 @@ import java.util.*;
 public class Driver {
 
     public static final boolean DEBUG = false;
-    private static final String DATA_HEAD = "C:\\Users\\creep\\Documents\\School\\Spring 2025\\CSCI 4370\\Class Activity 02\\mysql-files";
     private static Path pathHead;
 
     public static void main(String[] args) {
