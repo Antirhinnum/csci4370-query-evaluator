@@ -85,7 +85,7 @@ SELECT dept_name, min(salary) AS min, max(salary) AS max, avg(salary) AS avg FRO
 SELECT dept_name, avg(salary) AS avg_salary FROM instructor GROUP BY dept_name HAVING avg(salary) > 50000;
 ```
 
-Keywords may be in any case. Queries do nto need to end with a semicolon. Source tables for column names will be inferred if possible.
+Keywords may be in any case. Queries do not need to end with a semicolon. Source tables for column names will be inferred if possible.
 
 The following aggregate keywords are available:
 - `CONCAT`
